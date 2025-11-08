@@ -6,6 +6,10 @@ import WorkOrderDetails from './components/WorkOrderDetails'
 import Toast from './components/Toast'
 import LogsDrawer from './components/LogsDrawer'
 import { useToast } from './hooks/useToast'
+import { Routes, Route } from 'react-router-dom'
+import HomePage from './pages/HomePage'
+import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
 
 function App() {
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState(null)
