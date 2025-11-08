@@ -8,27 +8,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#EFF6FF',
-          100: '#DBEAFE',
-          500: '#3B82F6',
-          600: '#2563EB',
-          700: '#1D4ED8',
+        // Base colors from CSS variables
+        bg: {
+          primary: 'var(--bg-primary)',
+          secondary: 'var(--bg-secondary)',
+          tertiary: 'var(--bg-tertiary)',
+          elevated: 'var(--bg-elevated)',
+        },
+        border: {
+          DEFAULT: 'var(--border-color)',
+          muted: 'var(--border-muted)',
+        },
+        text: {
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          tertiary: 'var(--text-tertiary)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent-500)',
+          50: 'var(--accent-50)',
+          100: 'var(--accent-100)',
+          200: 'var(--accent-200)',
+          500: 'var(--accent-500)',
+          600: 'var(--accent-600)',
+          700: 'var(--accent-700)',
         },
         success: {
-          50: '#ECFDF5',
-          500: '#10B981',
-          600: '#059669',
+          50: 'var(--success-50)',
+          500: 'var(--success-500)',
+          600: 'var(--success-600)',
         },
         warning: {
-          50: '#FFFBEB',
-          500: '#F59E0B',
-          600: '#D97706',
+          50: 'var(--warning-50)',
+          500: 'var(--warning-500)',
+          600: 'var(--warning-600)',
         },
         danger: {
-          50: '#FFF1F2',
-          500: '#F43F5E',
-          600: '#E11D48',
+          50: 'var(--danger-50)',
+          500: 'var(--danger-500)',
+          600: 'var(--danger-600)',
         },
       },
       fontFamily: {
@@ -46,10 +64,6 @@ export default {
         'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
         'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
       },
-      spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
-      },
       transitionDuration: {
         '150': '150ms',
         '200': '200ms',
@@ -58,4 +72,3 @@ export default {
   },
   plugins: [],
 }
-

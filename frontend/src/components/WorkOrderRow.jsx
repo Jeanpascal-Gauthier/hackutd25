@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion'
-import StatusBadge from './StatusBadge'
+import StatusChip from './StatusChip'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 
 function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
+  const prefersReducedMotion = useReducedMotion()
+
   const formatTime = (dateString) => {
     if (!dateString) return 'N/A'
     const date = new Date(dateString)
@@ -20,28 +23,28 @@ function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
   const getStatusDotColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending':
-        return 'bg-slate-400'
+        return 'bg-text-tertiary'
       case 'in_progress':
       case 'in-progress':
-        return 'bg-brand-500'
+        return 'bg-accent-500'
       case 'completed':
         return 'bg-success-500'
       default:
-        return 'bg-slate-400'
+        return 'bg-text-tertiary'
     }
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -10 }}
+      animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05, duration: 0.2 }}
       onClick={onClick}
       className={`
         cursor-pointer p-4 border-l-2 transition-all duration-150
         ${isSelected 
-          ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 border-r border-t border-b border-slate-200 dark:border-slate-700' 
-          : 'border-transparent bg-white dark:bg-slate-800 border-r border-t border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+          ? 'border-accent-500 bg-accent-50 dark:bg-accent-50 border-r border-t border-b border-border' 
+          : 'border-transparent bg-bg-elevated border-r border-t border-b border-border hover:bg-bg-secondary dark:hover:bg-bg-tertiary'
         }
       `}
     >
@@ -52,11 +55,15 @@ function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
           
           {/* Title and Rack */}
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate mb-1">
+            <h3 className={`text-sm font-medium truncate mb-1 ${
+              isSelected 
+                ? 'text-accent-700 dark:text-accent-600' 
+                : 'text-text-primary'
+            }`}>
               {workOrder.title}
             </h3>
             {workOrder.rack && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+              <p className="text-xs text-text-secondary font-mono">
                 {workOrder.rack}
               </p>
             )}
@@ -66,18 +73,18 @@ function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
         {/* Severity Badge */}
         {workOrder.severity && (
           <div className="ml-2 flex-shrink-0">
-            <StatusBadge severity={workOrder.severity} size="sm" />
+            <StatusChip severity={workOrder.severity} size="sm" />
           </div>
         )}
       </div>
 
       {/* Updated Time */}
       <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-slate-500 dark:text-slate-400">
+        <span className="text-xs text-text-tertiary">
           {formatTime(workOrder.updated_at || workOrder.created_at)}
         </span>
         {workOrder.status && (
-          <StatusBadge status={workOrder.status} size="sm" />
+          <StatusChip status={workOrder.status} size="sm" />
         )}
       </div>
     </motion.div>
@@ -85,4 +92,3 @@ function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
 }
 
 export default WorkOrderRow
-

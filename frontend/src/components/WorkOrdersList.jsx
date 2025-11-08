@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import WorkOrderRow from './WorkOrderRow'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 
 function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
   const [workOrders, setWorkOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [error, setError] = useState(null)
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
     fetchWorkOrders()
@@ -46,7 +48,7 @@ function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
       <div className="p-6 space-y-4">
         {[1, 2, 3].map((i) => (
           <div key={i} className="animate-pulse">
-            <div className="h-20 bg-slate-200 dark:bg-slate-700 rounded" />
+            <div className="h-20 bg-bg-tertiary rounded" />
           </div>
         ))}
       </div>
@@ -56,8 +58,8 @@ function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
   if (error && workOrders.length === 0) {
     return (
       <div className="p-6">
-        <div className="bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 rounded-lg p-4">
-          <p className="text-sm text-danger-700 dark:text-danger-300">
+        <div className="bg-danger-50 dark:bg-danger-50 border border-danger-200 dark:border-danger-200 rounded-lg p-4">
+          <p className="text-sm text-danger-600 dark:text-danger-500">
             Error loading work orders: {error}
           </p>
         </div>
@@ -68,7 +70,7 @@ function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
   return (
     <div className="h-full flex flex-col">
       {/* Filter Row */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <div className="p-4 border-b border-border bg-bg-elevated">
         <div className="flex space-x-2">
           {['all', 'pending', 'in_progress', 'completed'].map((status) => (
             <button
@@ -77,8 +79,8 @@ function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
               className={`
                 px-3 py-1.5 text-xs font-medium rounded transition-all duration-150
                 ${filter === status
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-accent-500 text-white shadow-sm'
+                  : 'bg-bg-secondary text-text-secondary hover:bg-bg-tertiary'
                 }
               `}
             >
@@ -92,7 +94,7 @@ function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
       <div className="flex-1 overflow-y-auto">
         {filteredWorkOrders.length === 0 ? (
           <div className="p-6 text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-text-tertiary">
               No work orders found
             </p>
           </div>
@@ -113,4 +115,3 @@ function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
 }
 
 export default WorkOrdersList
-
