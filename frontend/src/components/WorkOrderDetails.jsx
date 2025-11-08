@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import StatusBadge from './StatusBadge'
+import StatusChip from './StatusChip'
 import StatCard from './StatCard'
 import Timeline from './Timeline'
-import LogItem from './LogItem'
 import PrimaryButton from './PrimaryButton'
+import InventoryBadge from './InventoryBadge'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 
-function WorkOrderDetails({ workOrderId }) {
+function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
   const [workOrder, setWorkOrder] = useState(null)
   const [inventory, setInventory] = useState(null)
-  const [logs, setLogs] = useState([])
   const [steps, setSteps] = useState([])
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [runningPlan, setRunningPlan] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
     if (workOrderId) {
@@ -58,12 +59,6 @@ function WorkOrderDetails({ workOrderId }) {
       ]
       setSteps(mockSteps)
 
-      // Mock logs
-      setLogs([
-        { message: 'Work order loaded', type: 'info', timestamp: new Date().toISOString() },
-        { message: 'Inventory check initiated', type: 'info', timestamp: new Date().toISOString() },
-      ])
-
     } catch (err) {
       setError(err.message)
       // Fallback mock data
@@ -100,20 +95,11 @@ function WorkOrderDetails({ workOrderId }) {
     }
     setSteps(updatedSteps)
     setCurrentStep(stepIndex + 1)
-
-    // Add log entry
-    setLogs(prev => [
-      ...prev,
-      {
-        message: `Step ${stepIndex + 1}: ${updatedSteps[stepIndex].result.message}`,
-        type: updatedSteps[stepIndex].result.success ? 'success' : 'error',
-        timestamp: new Date().toISOString(),
-      },
-    ])
   }
 
   const handleRunPlan = async () => {
     setRunningPlan(true)
+    onRunPlan?.(workOrderId)
     try {
       const response = await fetch(`/api/start_agent/${workOrderId}`, {
         method: 'POST',
@@ -127,27 +113,8 @@ function WorkOrderDetails({ workOrderId }) {
           description: `Step ${index + 1} of the repair procedure`,
         })))
       }
-
-      // Add agent logs
-      if (result.logs) {
-        setLogs(prev => [
-          ...prev,
-          ...result.logs.map(log => ({
-            message: log,
-            type: 'info',
-            timestamp: new Date().toISOString(),
-          })),
-        ])
-      }
     } catch (err) {
-      setLogs(prev => [
-        ...prev,
-        {
-          message: `Error running plan: ${err.message}`,
-          type: 'error',
-          timestamp: new Date().toISOString(),
-        },
-      ])
+      console.error('Error running plan:', err)
     } finally {
       setRunningPlan(false)
     }
@@ -165,7 +132,7 @@ function WorkOrderDetails({ workOrderId }) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <p className="text-body text-slate-500 dark:text-slate-400">
+          <p className="text-body text-text-tertiary">
             Select a work order to view details
           </p>
         </div>
@@ -177,11 +144,11 @@ function WorkOrderDetails({ workOrderId }) {
     return (
       <div className="p-8 space-y-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
-          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
+          <div className="h-8 bg-bg-tertiary rounded w-3/4" />
+          <div className="h-4 bg-bg-tertiary rounded w-1/2" />
           <div className="grid grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div key={i} className="h-20 bg-bg-tertiary rounded" />
             ))}
           </div>
         </div>
@@ -192,8 +159,8 @@ function WorkOrderDetails({ workOrderId }) {
   if (error && !workOrder) {
     return (
       <div className="p-8">
-        <div className="bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 rounded-lg p-4">
-          <p className="text-sm text-danger-700 dark:text-danger-300">
+        <div className="bg-danger-50 dark:bg-danger-50 border border-danger-200 dark:border-danger-200 rounded-lg p-4">
+          <p className="text-sm text-danger-600 dark:text-danger-500">
             Error loading work order: {error}
           </p>
         </div>
@@ -202,16 +169,21 @@ function WorkOrderDetails({ workOrderId }) {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
+    <motion.div
+      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+      animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="h-full overflow-y-auto"
+    >
       <div className="p-8 space-y-6">
         {/* Header */}
         <div>
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h1 className="text-h1 text-slate-900 dark:text-slate-100 mb-2">
+              <h1 className="text-h1 text-text-primary mb-2">
                 {workOrder?.title || 'Work Order Details'}
               </h1>
-              <div className="flex items-center space-x-4 text-body text-slate-600 dark:text-slate-400">
+              <div className="flex items-center space-x-4 text-body text-text-secondary">
                 {workOrder?.rack && (
                   <span className="font-mono text-code">{workOrder.rack}</span>
                 )}
@@ -223,9 +195,18 @@ function WorkOrderDetails({ workOrderId }) {
                 )}
               </div>
             </div>
-            {workOrder?.status && (
-              <StatusBadge status={workOrder.status} />
-            )}
+            <div className="flex items-center space-x-3">
+              {workOrder?.status && (
+                <StatusChip status={workOrder.status} />
+              )}
+              {inventory && (
+                <InventoryBadge
+                  available={inventory.available}
+                  quantity={inventory.quantity}
+                  location={inventory.location}
+                />
+              )}
+            </div>
           </div>
         </div>
 
@@ -264,8 +245,8 @@ function WorkOrderDetails({ workOrderId }) {
         </div>
 
         {/* Steps Timeline */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-6">
-          <h2 className="text-h2 text-slate-900 dark:text-slate-100 mb-6">Procedure Steps</h2>
+        <div className="bg-bg-elevated border border-border rounded-lg shadow-sm p-6">
+          <h2 className="text-h2 text-text-primary mb-6">Procedure Steps</h2>
           <Timeline
             steps={steps}
             onRunStep={handleRunStep}
@@ -273,45 +254,37 @@ function WorkOrderDetails({ workOrderId }) {
           />
         </div>
 
-        {/* Activity/Logs Feed */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-6">
-          <h2 className="text-h2 text-slate-900 dark:text-slate-100 mb-4">Activity Logs</h2>
-          <div className="max-h-64 overflow-y-auto" role="log" aria-live="polite" aria-label="Activity logs">
-            {logs.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">No logs available</p>
-            ) : (
-              logs.map((log, index) => (
-                <LogItem key={index} log={log} index={index} />
-              ))
-            )}
-          </div>
-        </div>
-
         {/* Action Buttons */}
-        <div className="flex items-center space-x-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <PrimaryButton
-            onClick={handleRunPlan}
-            disabled={runningPlan}
-            variant="primary"
+        <div className="flex items-center justify-between pt-4 border-t border-border">
+          <div className="flex items-center space-x-3">
+            <PrimaryButton
+              onClick={handleRunPlan}
+              disabled={runningPlan}
+              variant="primary"
+            >
+              {runningPlan ? 'Running...' : 'Run Plan'}
+            </PrimaryButton>
+            <PrimaryButton
+              onClick={() => {
+                setSteps([])
+                setCurrentStep(0)
+                fetchWorkOrderDetails()
+              }}
+              variant="ghost"
+            >
+              Replan
+            </PrimaryButton>
+          </div>
+          <button
+            onClick={onLogsClick}
+            className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
           >
-            {runningPlan ? 'Running...' : 'Run Plan'}
-          </PrimaryButton>
-          <PrimaryButton
-            onClick={() => {
-              setSteps([])
-              setCurrentStep(0)
-              setLogs([])
-              fetchWorkOrderDetails()
-            }}
-            variant="ghost"
-          >
-            Replan
-          </PrimaryButton>
+            View Logs →
+          </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 export default WorkOrderDetails
-
