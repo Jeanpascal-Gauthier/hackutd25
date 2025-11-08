@@ -4,7 +4,7 @@ from mongoengine import DoesNotExist
 from models.WorkOrder import WorkOrder
 from datetime import datetime
 
-work_orders_bp = Blueprint('work_orders', __name__, url_prefix='/work_orders')
+work_orders_bp = Blueprint('work_orders', __name__, url_prefix='/api/work_orders')
 
 # Create WorkOrder
 @work_orders_bp.route('/', methods=['POST'])
