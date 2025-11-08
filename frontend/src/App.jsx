@@ -1,32 +1,15 @@
-import { useState } from 'react'
-import TopBar from './components/TopBar'
-import SplitLayout from './components/SplitLayout'
-import WorkOrdersList from './components/WorkOrdersList'
-import WorkOrderDetails from './components/WorkOrderDetails'
+import { Routes, Route } from 'react-router-dom'
+import HomePage from './pages/HomePage'
+import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
 
 function App() {
-  const [selectedWorkOrderId, setSelectedWorkOrderId] = useState(null)
-  const [searchQuery, setSearchQuery] = useState('')
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <TopBar onSearchChange={setSearchQuery} />
-      <div className="relative">
-        <SplitLayout
-          leftPane={
-            <WorkOrdersList
-              selectedId={selectedWorkOrderId}
-              onSelect={setSelectedWorkOrderId}
-              searchQuery={searchQuery}
-            />
-          }
-          rightPane={
-            <WorkOrderDetails workOrderId={selectedWorkOrderId} />
-          }
-          leftWidth={30}
-        />
-      </div>
-    </div>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+    </Routes>
   )
 }
 
