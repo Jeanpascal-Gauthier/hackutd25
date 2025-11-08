@@ -1,28 +1,25 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from agent.main_agent import run_agent
+from mongoengine import connect
+from dotenv import load_dotenv
+import os
+from routes.work_orders import work_orders_bp
+
+load_dotenv('./')
 
 app = Flask(__name__)
 CORS(app)
 
-WORKORDERS = [
-    { "id": 1, "title": "Replace GPU Node A12", "status": "pending" },
-    { "id": 2, "title": "Check Rack Temperature R18", "status": "in_progress" }
-]
+connect(
+    db="datacenter",
+    host=os.getenv("MONGODB_HOST")
+)
 
-INVENTORY = {
-    "gpu-a100": { "available": True, "location": "Shelf 3" },
-    "psu-1200w": { "available": True, "location": "Shelf 1" }
-}
+print("Connected to MongoDB!")
 
-@app.route("/inventory/<part_id>")
-def get_inventory(part_id):
-    return jsonify(INVENTORY.get(part_id, {"available": False}))
 
-@app.route("/start_agent/<int:workorder_id>", methods=["POST"])
-def start_agent(workorder_id):
-    result = run_agent(workorder_id)
-    return jsonify(result)
+app.register_blueprint(work_orders_bp)
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
