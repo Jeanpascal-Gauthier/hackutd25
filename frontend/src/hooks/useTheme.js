@@ -9,6 +9,11 @@ export function useTheme() {
   const [resolvedTheme, setResolvedTheme] = useState('light')
 
   useEffect(() => {
+    // Safety check for browser environment
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return
+    }
+
     // Load from localStorage
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'system'
     const savedAccent = localStorage.getItem(ACCENT_STORAGE_KEY) || 'blue'
@@ -50,6 +55,10 @@ export function useTheme() {
   }, [])
 
   const updateTheme = (newTheme) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return
+    }
+    
     setTheme(newTheme)
     localStorage.setItem(THEME_STORAGE_KEY, newTheme)
     
@@ -74,6 +83,10 @@ export function useTheme() {
   }
 
   const updateAccent = (newAccent) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return
+    }
+    
     setAccent(newAccent)
     localStorage.setItem(ACCENT_STORAGE_KEY, newAccent)
     document.documentElement.setAttribute('data-accent', newAccent)

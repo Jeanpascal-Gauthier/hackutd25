@@ -38,6 +38,11 @@ function StatusChip({ status, severity, size = 'default' }) {
   const getSeverityConfig = () => {
     switch (severity?.toLowerCase()) {
       case 'critical':
+        return {
+          bg: 'bg-priority-critical-50 dark:bg-priority-critical-50',
+          text: 'text-priority-critical-600 dark:text-priority-critical-500',
+          border: 'border-priority-critical-200 dark:border-priority-critical-200',
+        }
       case 'high':
         return {
           bg: 'bg-danger-50 dark:bg-danger-50',
@@ -74,4 +79,3 @@ function StatusChip({ status, severity, size = 'default' }) {
 }
 
 export default StatusChip
-
