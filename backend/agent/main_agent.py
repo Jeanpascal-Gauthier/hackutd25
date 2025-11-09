@@ -113,6 +113,8 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
     data = json.loads(result.choices[0].message.content)
     print("--------------------------------")
     print(result)
+    print()
+    print(data)
     print("--------------------------------")
 
     work_order = WorkOrder(
@@ -129,7 +131,7 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
 
     plan_steps = [
         PlanStep(
-            work_order_id=work_order.id,
+            work_order=work_order,
             step_number=step['step_number'],
             description=step['description'],
             executor="undecided",
@@ -142,7 +144,10 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
     PlanStep.objects.insert(plan_steps)
 
     all_steps = list(map(lambda x: f"Order: {x['step_number']}, Description: {x['description']}", data['steps']))
-    for step in data['steps']:
+    for i, step in enumerate(data['steps']):
+        current_plan_step = plan_steps[step['step_number']-1]
+        current_plan_step.status = "in_progress"
+        current_plan_step.save()
         msg = {"role": "user", "content": f"""
     Work Order Title: {state['work_order_title']}
     Work Order Description: {state['work_order_description']}
@@ -159,9 +164,17 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
         result = agent.invoke({
             "messages": [msg]
         })
+        
         # print(mapped)
         # print(result)
         most_recent_msg = result['messages'][-1]
-        content = json.loads(most_recent_msg['content'])
+
+        content = json.loads(most_recent_msg.content)
+        current_plan_step.executor = content['executor']
+        current_plan_step.save()
         if content['executor'] != 'agent':
             break
+        else:
+            current_plan_step.status = "success"
+
+        current_plan_step.save()
