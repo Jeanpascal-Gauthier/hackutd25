@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { useAuth } from '../contexts/AuthContext'
 
 function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit }) {
   const prefersReducedMotion = useReducedMotion()
+  const { isTechnician } = useAuth()
   const [formData, setFormData] = useState({
     reason: '',
     description: '',
     additionalNotes: '',
     urgency: 'medium',
+    escalateToEngineer: false,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -51,6 +54,7 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit }) {
       description: '',
       additionalNotes: '',
       urgency: 'medium',
+      escalateToEngineer: false,
     })
     onClose()
   }
@@ -195,6 +199,29 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit }) {
                   className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none"
                 />
               </div>
+
+              {/* Escalation Option for Technicians */}
+              {isTechnician() && (
+                <div className="bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg p-4">
+                  <label className="flex items-start space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="escalateToEngineer"
+                      checked={formData.escalateToEngineer}
+                      onChange={(e) => setFormData(prev => ({ ...prev, escalateToEngineer: e.target.checked }))}
+                      className="mt-1 w-4 h-4 text-brand-500 border-border rounded focus:ring-brand-500 focus:ring-2"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-warning-700 dark:text-warning-300 block">
+                        Escalate to Engineer
+                      </span>
+                      <span className="text-xs text-warning-600 dark:text-warning-400 mt-1 block">
+                        Check this box to send this issue directly to an engineer for review. Engineers will be notified and can provide guidance or take over the task.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Actions */}

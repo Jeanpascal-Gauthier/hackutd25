@@ -7,8 +7,10 @@ import PrimaryButton from './PrimaryButton'
 import InventoryBadge from './InventoryBadge'
 import IssueReportForm from './IssueReportForm'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { useAuth } from '../contexts/AuthContext'
 
-function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
+function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, onIssueEscalate }) {
+  const { isEngineer } = useAuth()
   const [workOrder, setWorkOrder] = useState(null)
   const [inventory, setInventory] = useState(null)
   const [steps, setSteps] = useState([])
@@ -178,6 +180,11 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
     }
     setSteps(updatedSteps)
     
+    // Handle escalation if checked
+    if (issueReport.escalateToEngineer) {
+      onIssueEscalate?.(issueReport)
+    }
+    
     // TODO: Send to backend API
     console.log('Issue report submitted:', issueReport)
     // Example API call (commented out for now):
@@ -188,14 +195,13 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
     // })
   }
 
-  const handleRunPlan = async () => {
-    setRunningPlan(true)
-    onRunPlan?.(workOrderId)
-    try {
-      const response = await fetch(`/api/start_agent/${workOrderId}`, {
-        method: 'POST',
-      })
-      const result = await response.json()
+  const formatSLA = () => {
+    if (!workOrder?.created_at) return 'N/A'
+    const created = new Date(workOrder.created_at)
+    const now = new Date()
+    const hours = Math.floor((now - created) / 3600000)
+    return `${hours}h`
+  }
 
   if (!workOrderId) {
     return (
@@ -319,17 +325,6 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
           <Timeline
             steps={steps}
             onRunStep={handleRunStep}
-            onStepComplete={handleStepComplete}
-            onStepFail={handleStepFail}
-            currentStep={currentStep}
-          />
-        </div>
-        {/* Steps Timeline */}
-        <div className="bg-bg-elevated border border-border rounded-lg shadow-sm p-6">
-          <h2 className="text-h2 text-text-primary mb-6">Procedure Steps</h2>
-          <Timeline
-            steps={steps}
-            onRunStep={handleRunStep}
             currentStep={currentStep}
             onReportIssue={handleReportIssue}
           />
@@ -355,7 +350,7 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
             >
               Replan
             </PrimaryButton>
-            {onAssignClick && (
+            {isEngineer() && onAssignClick && (
               <PrimaryButton
                 onClick={onAssignClick}
                 variant="ghost"
@@ -372,6 +367,20 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
           </button>
         </div>
       </div>
+
+      {/* Issue Report Form Modal */}
+      {selectedStepIndex !== null && (
+        <IssueReportForm
+          isOpen={issueFormOpen}
+          onClose={() => {
+            setIssueFormOpen(false)
+            setSelectedStepIndex(null)
+          }}
+          stepTitle={steps[selectedStepIndex]?.title || `Step ${selectedStepIndex + 1}`}
+          stepIndex={selectedStepIndex}
+          onSubmit={handleIssueSubmit}
+        />
+      )}
     </motion.div>
   )
 }

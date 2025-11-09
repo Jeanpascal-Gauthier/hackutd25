@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useAuth } from '../contexts/AuthContext'
 
 function SignupPage() {
   const [formData, setFormData] = useState({
@@ -8,10 +9,12 @@ function SignupPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'technician',
     team: 'compute',
   })
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -22,8 +25,16 @@ function SignupPage() {
     setLoading(true)
     // Simulate signup
     setTimeout(() => {
+      // Auto-login after signup
+      login({
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        team: formData.team,
+        token: 'demo_token',
+      })
       setLoading(false)
-      navigate('/login')
+      navigate('/')
     }, 1000)
   }
 
@@ -78,6 +89,22 @@ function SignupPage() {
               className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               placeholder="technician@datacenter.com"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Role <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            >
+              <option value="technician">Database Technician</option>
+              <option value="engineer">Database Engineer</option>
+            </select>
           </div>
 
           <div>

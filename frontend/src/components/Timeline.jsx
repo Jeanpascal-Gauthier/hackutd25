@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 
-function Timeline({ steps = [], onRunStep, onStepComplete, onStepFail, currentStep }) {
 function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
   const prefersReducedMotion = useReducedMotion()
 
