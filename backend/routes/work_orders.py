@@ -46,14 +46,40 @@ def get_workorders():
     workorders = WorkOrder.objects()
     results = []
     for wo in workorders:
+        # Calculate status based on step completion
+        steps = PlanStep.objects(work_order=wo).order_by('step_number')
+        status = wo.status  # Default to current status
+        
+        if steps:
+            completed_steps = [s for s in steps if s.status == "success"]
+            in_progress_steps = [s for s in steps if s.status == "in_progress"]
+            
+            if len(completed_steps) == len(steps):
+                # All steps completed
+                status = "completed"
+            elif len(completed_steps) > 0 or len(in_progress_steps) > 1:
+                # At least one step is complete or in progress
+                status = "in_progress"
+            else:
+                # No steps completed yet
+                status = "pending"
+            
+            # Update work order status if it changed
+            if wo.status != status:
+                wo.status = status
+                wo.updated_at = datetime.utcnow()
+                wo.save()
+        
         results.append({
             "id": str(wo.id),
             "title": wo.title,
             "description": wo.description,
             "priority": wo.priority,
-            "status": wo.status,
+            "status": status,
             "estimated_expertise_level": wo.estimated_expertise_level,
-            "category": wo.category
+            "category": wo.category,
+            "created_at": wo.created_at.isoformat() if wo.created_at else None,
+            "updated_at": wo.updated_at.isoformat() if wo.updated_at else (wo.created_at.isoformat() if wo.created_at else None)
         })
     return jsonify(results)
 

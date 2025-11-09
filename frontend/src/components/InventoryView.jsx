@@ -22,8 +22,8 @@ function InventoryView() {
   }
 
   const filteredInventory = inventory.filter(item =>
-    item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.part_number && item.part_number.toLowerCase().includes(searchTerm.toLowerCase()))
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.location && item.location.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   if (loading) {
@@ -46,11 +46,31 @@ function InventoryView() {
       <div className="mb-6">
         <input
           type="text"
-          placeholder="Search by part ID or part number..."
+          placeholder="Search by item name or location..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full max-w-md px-4 py-2 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
+      </div>
+      
+      {/* Summary Stats */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white border border-slate-200 rounded-lg p-4">
+          <div className="text-sm text-slate-600">Total Items</div>
+          <div className="text-2xl font-semibold text-slate-900">{inventory.length}</div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-lg p-4">
+          <div className="text-sm text-slate-600">Available Items</div>
+          <div className="text-2xl font-semibold text-green-600">
+            {inventory.filter(item => item.available).length}
+          </div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-lg p-4">
+          <div className="text-sm text-slate-600">Low Stock Items</div>
+          <div className="text-2xl font-semibold text-yellow-600">
+            {inventory.filter(item => item.quantity > 0 && item.quantity < 10).length}
+          </div>
+        </div>
       </div>
 
       {/* Inventory Grid */}
@@ -69,20 +89,26 @@ function InventoryView() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="text-lg font-medium text-slate-900 mb-1">
-                      {item.id.toUpperCase()}
+                      {item.name}
                     </h3>
-                    {item.part_number && (
-                      <p className="text-sm text-slate-600 mb-3">Part #: {item.part_number}</p>
+                    {item.cost && item.cost !== 'N/A' && (
+                      <p className="text-sm text-slate-600 mb-3">Cost: ${item.cost}</p>
                     )}
                   </div>
                   <span
                     className={`px-2.5 py-0.5 text-xs font-medium rounded border ${
                       item.available
-                        ? 'bg-green-50 text-green-700 border-green-200'
+                        ? item.quantity < 10
+                          ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                          : 'bg-green-50 text-green-700 border-green-200'
                         : 'bg-red-50 text-red-700 border-red-200'
                     }`}
                   >
-                    {item.available ? 'AVAILABLE' : 'OUT OF STOCK'}
+                    {item.available 
+                      ? item.quantity < 10 
+                        ? 'LOW STOCK' 
+                        : 'AVAILABLE' 
+                      : 'OUT OF STOCK'}
                   </span>
                 </div>
                 <div className="space-y-2 text-sm">
@@ -90,10 +116,14 @@ function InventoryView() {
                     <span className="text-slate-600">Location:</span>
                     <span className="font-medium text-slate-900">{item.location || 'N/A'}</span>
                   </div>
-                  {item.quantity !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Quantity:</span>
+                    <span className="font-medium text-slate-900">{item.quantity || 0}</span>
+                  </div>
+                  {item.reserved && (
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Quantity:</span>
-                      <span className="font-medium text-slate-900">{item.quantity}</span>
+                      <span className="text-slate-600">Status:</span>
+                      <span className="font-medium text-orange-600">Reserved</span>
                     </div>
                   )}
                 </div>

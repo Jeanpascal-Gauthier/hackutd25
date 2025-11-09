@@ -69,13 +69,14 @@ def check_inventory(item_name: str = None, location: str = None) -> str:
         else:
             items = InventoryItem.objects()
         
-        if not items:
+        if not items or len(items) == 0:
             return f"No inventory items found{' for ' + item_name if item_name else ''}{' at ' + location if location else ''}."
         
-        result = f"Inventory check results:\n"
+        result = f"Inventory check results ({len(items)} item{'s' if len(items) != 1 else ''} found):\n"
         for item in items:
             reserved_status = " (Reserved)" if item.reserved else ""
-            result += f"- {item.name}: Quantity {item.quantity}, Location: {item.location}{reserved_status}\n"
+            available_status = " (Available)" if not item.reserved and item.quantity > 0 else " (Out of Stock)" if item.quantity == 0 else ""
+            result += f"- {item.name}: Quantity {item.quantity}, Location: {item.location or 'N/A'}{reserved_status}{available_status}\n"
         
         return result
     except Exception as e:
@@ -100,15 +101,16 @@ def update_inventory(item_name: str, quantity_change: int, location: str = None)
             item = InventoryItem.objects(name__icontains=item_name).first()
         
         if not item:
-            return f"Inventory item '{item_name}' not found."
+            return f"Inventory item '{item_name}' not found. Cannot update inventory."
         
-        current_quantity = int(item.quantity) if item.quantity else 0
+        current_quantity = item.quantity if item.quantity else 0
         new_quantity = max(0, current_quantity + quantity_change)  # Prevent negative quantities
-        item.quantity = str(new_quantity)
+        item.quantity = new_quantity
         item.save()
         
         action = "added" if quantity_change > 0 else "removed"
-        return f"Inventory updated: {abs(quantity_change)} units {action} from {item_name}. New quantity: {new_quantity} at {item.location}."
+        location_info = f" at {item.location}" if item.location else ""
+        return f"Inventory updated: {abs(quantity_change)} units {action} from {item_name}. New quantity: {new_quantity}{location_info}."
     except Exception as e:
         return f"Error updating inventory: {str(e)}"
 

@@ -139,100 +139,6 @@ function HomePage() {
     }
   }
 
-  const handleRunPlan = async (workOrderId) => {
-    const workOrder = selectedWorkOrder || { title: 'Work Order', rack: 'Unknown' }
-    addToast('Plan execution started', 'info', 'Agent is processing your request...')
-    
-    // Simulate agent reasoning
-    const reasoning = [
-      {
-        message: `Agent: Analyzing work order "${workOrder.title}" requirements...`,
-        timestamp: new Date().toISOString(),
-      },
-      {
-        message: `Agent: Checking inventory availability for required parts at ${workOrder.rack || 'location'}...`,
-        timestamp: new Date().toISOString(),
-      },
-      {
-        message: `Agent: Generating optimized procedure steps for ${workOrder.title}...`,
-        timestamp: new Date().toISOString(),
-      },
-      {
-        message: `Agent: Calculating shortest path to ${workOrder.location?.pod || 'target location'}...`,
-        timestamp: new Date().toISOString(),
-      },
-    ]
-    setAgentReasoning(reasoning)
-
-    // Simulate adding detailed logs
-    const newLogs = [
-      {
-        message: `Agent: Plan execution initiated for "${workOrder.title}"`,
-        type: 'info',
-        source: 'agent',
-        timestamp: new Date().toISOString(),
-      },
-      {
-        message: `Agent: Parsing work order details - Rack: ${workOrder.rack}, Model: ${workOrder.model || 'N/A'}`,
-        type: 'info',
-        source: 'agent',
-        timestamp: new Date().toISOString(),
-      },
-      {
-        message: `Agent: Querying inventory database for part ID: ${workOrder.part_id || 'N/A'}`,
-        type: 'info',
-        source: 'agent',
-        timestamp: new Date().toISOString(),
-      },
-    ]
-    setLogs(prev => [...prev, ...newLogs])
-
-    // After delays, add more specific logs
-    setTimeout(() => {
-      setLogs(prev => [
-        ...prev,
-        {
-          message: `Agent: Inventory check complete - Parts available at ${workOrder.location?.pod || 'Pod-1'}`,
-          type: 'success',
-          source: 'agent',
-          timestamp: new Date().toISOString(),
-        },
-        {
-          message: `Agent: Generated 5-step procedure for ${workOrder.title}`,
-          type: 'success',
-          source: 'agent',
-          timestamp: new Date().toISOString(),
-        },
-      ])
-    }, 1000)
-
-    setTimeout(() => {
-      addToast('Plan executed successfully', 'success', 'Agent has generated the repair procedure')
-      setLogs(prev => [
-        ...prev,
-        {
-          message: `Agent: Plan generation complete. Ready for technician execution.`,
-          type: 'success',
-          source: 'agent',
-          timestamp: new Date().toISOString(),
-        },
-        {
-          message: `Technician: Reviewing generated procedure steps...`,
-          type: 'info',
-          source: 'technician',
-          timestamp: new Date().toISOString(),
-        },
-      ])
-      setAgentReasoning(prev => [
-        ...prev,
-        {
-          message: 'Plan generation complete. Ready to execute.',
-          timestamp: new Date().toISOString(),
-        },
-      ])
-    }, 2000)
-  }
-
   const getPathToLocation = (targetLocation) => {
     if (!targetLocation) return null
     // Simulate pathfinding - in real app, call /api/pathfind
@@ -426,7 +332,6 @@ function HomePage() {
                   <WorkOrderDetails
                     workOrderId={selectedWorkOrderId}
                     onLogsClick={() => setLogsDrawerOpen(true)}
-                    onRunPlan={handleRunPlan}
                     onAssignClick={() => setAssignmentModalOpen(true)}
                     onIssueEscalate={(issueReport) => handleIssueEscalation(issueReport, selectedWorkOrderId, selectedWorkOrder?.title)}
                   />
