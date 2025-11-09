@@ -5,6 +5,7 @@ import StatCard from './StatCard'
 import Timeline from './Timeline'
 import PrimaryButton from './PrimaryButton'
 import InventoryBadge from './InventoryBadge'
+import IssueReportForm from './IssueReportForm'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 
 function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
@@ -15,6 +16,8 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [runningPlan, setRunningPlan] = useState(false)
+  const [issueFormOpen, setIssueFormOpen] = useState(false)
+  const [selectedStepIndex, setSelectedStepIndex] = useState(null)
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
@@ -95,6 +98,30 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
     }
     setSteps(updatedSteps)
     setCurrentStep(stepIndex + 1)
+  }
+
+  const handleReportIssue = (stepIndex) => {
+    setSelectedStepIndex(stepIndex)
+    setIssueFormOpen(true)
+  }
+
+  const handleIssueSubmit = (issueReport) => {
+    // Update the step with the issue report
+    const updatedSteps = [...steps]
+    updatedSteps[issueReport.stepIndex] = {
+      ...updatedSteps[issueReport.stepIndex],
+      issueReport,
+    }
+    setSteps(updatedSteps)
+    
+    // TODO: Send to backend API
+    console.log('Issue report submitted:', issueReport)
+    // Example API call (commented out for now):
+    // fetch(`/api/workorders/${workOrderId}/issues`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(issueReport),
+    // })
   }
 
   const handleRunPlan = async () => {
@@ -251,6 +278,7 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
             steps={steps}
             onRunStep={handleRunStep}
             currentStep={currentStep}
+            onReportIssue={handleReportIssue}
           />
         </div>
 
@@ -283,6 +311,20 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
           </button>
         </div>
       </div>
+
+      {/* Issue Report Form Modal */}
+      {selectedStepIndex !== null && (
+        <IssueReportForm
+          isOpen={issueFormOpen}
+          onClose={() => {
+            setIssueFormOpen(false)
+            setSelectedStepIndex(null)
+          }}
+          stepTitle={steps[selectedStepIndex]?.title || `Step ${selectedStepIndex + 1}`}
+          stepIndex={selectedStepIndex}
+          onSubmit={handleIssueSubmit}
+        />
+      )}
     </motion.div>
   )
 }
