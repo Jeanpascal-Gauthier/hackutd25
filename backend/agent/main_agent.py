@@ -131,7 +131,68 @@ All Steps:
             step.status = "success"
 
         step.save()
+
+def execute_steps_automatically(work_order, plan_steps, start_from_step_number=None):
+    """
+    Automatically execute plan steps, stopping at the first step that requires technician action.
+    
+    Args:
+        work_order: WorkOrder instance
+        plan_steps: List of PlanStep instances to execute
+        start_from_step_number: Optional step number to start from (inclusive)
+    
+    Returns:
+        The first step that requires technician action (or None if all completed)
+    """
+    all_steps = PlanStep.objects(work_order=work_order).order_by('step_number')
+    all_steps_str = [
+        f"Order: {step.step_number}, Description: {step.description}"
+        for step in all_steps
+    ]
+
+    for step in plan_steps:
+        # Skip if we're starting from a specific step number
+        if start_from_step_number and step.step_number < start_from_step_number:
+            continue
+
+        step.status = "in_progress"
+        step.save()
+
+        msg = {
+            "role": "user",
+            "content": f"""
+Work Order Title: {work_order.title}
+Work Order Description: {work_order.description}
+Priority: {work_order.priority}
+Category: {work_order.category}
+Estimated Expertise Level: {work_order.estimated_expertise_level}
+
+Current Step:
+- Order: {step.step_number}
+- Description: {step.description}
+
+All Steps:
+{chr(10).join(all_steps_str)}
+"""
+        }
+
+        result = agent.invoke({"messages": [msg]})
+        latest_message = result["messages"][-1]
+        data = json.loads(latest_message.content)
+
+        step.executor = data["executor"]
+        step.save()
         
+        if data['executor'] != 'agent':
+            # This step requires technician - keep it as in_progress
+            return step
+        else:
+            # Agent can execute this step
+            step.status = "success"
+            step.executed_at = datetime.utcnow()
+            step.save()
+
+    return None  # All steps completed by agent
 
 def run_agent(state: Context):
     prompt = f"""

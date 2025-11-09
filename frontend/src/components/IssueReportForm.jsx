@@ -3,17 +3,43 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useAuth } from '../contexts/AuthContext'
 
-function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit }) {
+function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit, isSubmitting: externalIsSubmitting = false }) {
   const prefersReducedMotion = useReducedMotion()
   const { isTechnician } = useAuth()
   const [formData, setFormData] = useState({
-    reason: '',
     description: '',
-    additionalNotes: '',
-    urgency: 'medium',
-    escalateToEngineer: false,
+    // reason: '',  // Commented out - not needed for now
+    // additionalNotes: '',  // Commented out - not needed for now
+    // urgency: 'medium',  // Commented out - not needed for now
+    // escalateToEngineer: false,  // Commented out - not needed for now
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const isLoading = isSubmitting || externalIsSubmitting
+  
+  // Loading spinner component
+  const LoadingSpinner = ({ size = 'w-4 h-4' }) => (
+    <svg
+      className={`${size} animate-spin text-current`}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
+  )
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -26,35 +52,30 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
-
-    // TODO: Replace with actual API call
+    
+    const issueReport = {
+      stepIndex,
+      stepTitle,
+      ...formData,
+      timestamp: new Date().toISOString(),
+    }
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const issueReport = {
-        stepIndex,
-        stepTitle,
-        ...formData,
-        timestamp: new Date().toISOString(),
-      }
-      
-      onSubmit?.(issueReport)
-      handleClose()
+      await onSubmit?.(issueReport)
+      // Don't close here - let the parent handle it after API call completes
     } catch (err) {
       console.error('Error submitting issue report:', err)
-    } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleClose = () => {
     setFormData({
-      reason: '',
       description: '',
-      additionalNotes: '',
-      urgency: 'medium',
-      escalateToEngineer: false,
+      // reason: '',  // Commented out
+      // additionalNotes: '',  // Commented out
+      // urgency: 'medium',  // Commented out
+      // escalateToEngineer: false,  // Commented out
     })
     onClose()
   }
@@ -83,6 +104,15 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit }) {
           className="relative bg-bg-elevated border border-border rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
+          {isLoading && (
+            <div className="absolute inset-0 bg-bg-elevated/90 backdrop-blur-sm rounded-lg flex items-center justify-center z-20">
+              <div className="flex flex-col items-center gap-3">
+                <LoadingSpinner size="w-8 h-8" />
+                <p className="text-sm text-text-secondary">Regenerating steps with AI...</p>
+                <p className="text-xs text-text-tertiary">This may take a few moments</p>
+              </div>
+            </div>
+          )}
           {/* Header */}
           <div className="p-6 border-b border-border">
             <div className="flex items-start justify-between">
@@ -109,64 +139,6 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit }) {
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
             <div className="space-y-6">
-              {/* Reason Selection */}
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Reason for Issue <span className="text-danger-500">*</span>
-                </label>
-                <select
-                  name="reason"
-                  value={formData.reason}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
-                >
-                  <option value="">Select a reason...</option>
-                  <option value="missing-parts">Missing Required Parts</option>
-                  <option value="missing-tools">Missing Required Tools</option>
-                  <option value="safety-concern">Safety Concern</option>
-                  <option value="technical-issue">Technical Issue</option>
-                  <option value="access-problem">Access/Physical Problem</option>
-                  <option value="documentation-unclear">Documentation Unclear</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              {/* Urgency Level */}
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Urgency Level <span className="text-danger-500">*</span>
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { value: 'low', label: 'Low', color: 'text-success-600 dark:text-success-400' },
-                    { value: 'medium', label: 'Medium', color: 'text-warning-600 dark:text-warning-400' },
-                    { value: 'high', label: 'High', color: 'text-danger-600 dark:text-danger-400' },
-                  ].map((level) => (
-                    <label
-                      key={level.value}
-                      className={`relative flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                        formData.urgency === level.value
-                          ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                          : 'border-border bg-bg-secondary hover:border-border-hover'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="urgency"
-                        value={level.value}
-                        checked={formData.urgency === level.value}
-                        onChange={handleChange}
-                        className="sr-only"
-                      />
-                      <span className={`text-sm font-medium ${formData.urgency === level.value ? level.color : 'text-text-secondary'}`}>
-                        {level.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
               {/* Description */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-text-primary mb-2">
@@ -178,50 +150,21 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit }) {
                   value={formData.description}
                   onChange={handleChange}
                   required
-                  rows={4}
-                  placeholder="Describe the issue in detail. What happened? What prevented you from completing this step?"
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none"
+                  disabled={isLoading}
+                  rows={6}
+                  placeholder="Describe the issue in detail. What happened? What prevented you from completing this step? The AI will regenerate steps from this point onwards based on your description."
+                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
+                <p className="text-xs text-text-tertiary mt-2">
+                  The AI will analyze this issue and regenerate the remaining steps to address it.
+                </p>
               </div>
 
-              {/* Additional Notes */}
-              <div>
-                <label htmlFor="additionalNotes" className="block text-sm font-medium text-text-primary mb-2">
-                  Additional Notes
-                </label>
-                <textarea
-                  id="additionalNotes"
-                  name="additionalNotes"
-                  value={formData.additionalNotes}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Any additional information, suggestions, or context that might be helpful..."
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none"
-                />
-              </div>
-
-              {/* Escalation Option for Technicians */}
-              {isTechnician() && (
-                <div className="bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg p-4">
-                  <label className="flex items-start space-x-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="escalateToEngineer"
-                      checked={formData.escalateToEngineer}
-                      onChange={(e) => setFormData(prev => ({ ...prev, escalateToEngineer: e.target.checked }))}
-                      className="mt-1 w-4 h-4 text-brand-500 border-border rounded focus:ring-brand-500 focus:ring-2"
-                    />
-                    <div>
-                      <span className="text-sm font-medium text-warning-700 dark:text-warning-300 block">
-                        Escalate to Engineer
-                      </span>
-                      <span className="text-xs text-warning-600 dark:text-warning-400 mt-1 block">
-                        Check this box to send this issue directly to an engineer for review. Engineers will be notified and can provide guidance or take over the task.
-                      </span>
-                    </div>
-                  </label>
-                </div>
-              )}
+              {/* Commented out fields - not needed for now */}
+              {/* Reason Selection - Commented out */}
+              {/* Urgency Level - Commented out */}
+              {/* Additional Notes - Commented out */}
+              {/* Escalation Option - Commented out */}
             </div>
 
             {/* Actions */}
@@ -229,16 +172,24 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit }) {
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || !formData.reason || !formData.description}
-                className="px-4 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                disabled={isLoading || !formData.description}
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner size="w-4 h-4" />
+                    <span>Regenerating Steps...</span>
+                  </>
+                ) : (
+                  'Submit Report'
+                )}
               </button>
             </div>
           </form>

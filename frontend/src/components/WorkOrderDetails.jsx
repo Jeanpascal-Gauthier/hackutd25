@@ -20,6 +20,8 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
   const [runningPlan, setRunningPlan] = useState(false)
   const [issueFormOpen, setIssueFormOpen] = useState(false)
   const [selectedStepIndex, setSelectedStepIndex] = useState(null)
+  const [loadingStepId, setLoadingStepId] = useState(null)
+  const [isSubmittingIssue, setIsSubmittingIssue] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
@@ -41,47 +43,43 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
       const woData = await woResponse.json()
       setWorkOrder(woData)
 
-      // Fetch inventory if part_id exists
-      if (woData.part_id) {
-        try {
-          const invResponse = await fetch(`/api/inventory/${woData.part_id}`)
-          if (invResponse.ok) {
-            const invData = await invResponse.json()
-            setInventory(invData)
-          }
-        } catch (err) {
-          console.error('Error fetching inventory:', err)
-        }
+      // Fetch steps for this work order
+      const stepsResponse = await fetch(`/api/work_orders/${workOrderId}/steps`)
+      if (stepsResponse.ok) {
+        const stepsData = await stepsResponse.json()
+        // Transform API steps to match Timeline component format
+        const transformedSteps = stepsData.map(step => ({
+          id: step.id,
+          title: `Step ${step.step_number}`,
+          description: step.description,
+          step_number: step.step_number,
+          status: step.status,
+          executor: step.executor,
+          result: step.result,
+          executed_at: step.executed_at,
+        }))
+        setSteps(transformedSteps)
+      } else {
+        // No steps yet or error - set empty array
+        setSteps([])
       }
 
-      // Mock steps based on work order
-      const mockSteps = [
-        { title: 'Verify Work Order', description: 'Review work order details and requirements' },
-        { title: 'Check Inventory', description: 'Verify required parts are available' },
-        { title: 'Prepare Equipment', description: 'Gather necessary tools and safety equipment' },
-        { title: 'Execute Repair', description: 'Perform the repair procedure' },
-        { title: 'Verify Completion', description: 'Test and verify the repair is successful' },
-      ]
-      setSteps(mockSteps)
+      // Fetch inventory if part_id exists (commented out for now)
+      // if (woData.part_id) {
+      //   try {
+      //     const invResponse = await fetch(`/api/inventory/${woData.part_id}`)
+      //     if (invResponse.ok) {
+      //       const invData = await invResponse.json()
+      //       setInventory(invData)
+      //     }
+      //   } catch (err) {
+      //     console.error('Error fetching inventory:', err)
+      //   }
+      // }
 
     } catch (err) {
       setError(err.message)
-      // Fallback mock data
-      setWorkOrder({
-        id: workOrderId,
-        title: 'Replace GPU Node A12',
-        status: 'pending',
-        severity: 'high',
-        rack: 'Rack-A12',
-        model: 'NVIDIA A100',
-        part_id: 'gpu-a100',
-        created_at: new Date().toISOString(),
-      })
-      setSteps([
-        { title: 'Verify Work Order', description: 'Review work order details' },
-        { title: 'Check Inventory', description: 'Verify parts availability' },
-        { title: 'Execute Repair', description: 'Perform the repair' },
-      ])
+      console.error('Error fetching work order details:', err)
     } finally {
       setLoading(false)
     }
@@ -116,18 +114,37 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
     }
   }
 
-  const handleStepComplete = (stepIndex) => {
-    const updatedSteps = [...steps]
-    updatedSteps[stepIndex] = {
-      ...updatedSteps[stepIndex],
-      result: {
-        success: true,
-        message: 'Step marked as completed',
-        timestamp: new Date().toISOString(),
-      },
+  const handleStepComplete = async (stepId, workOrderId) => {
+    setLoadingStepId(stepId)
+    try {
+      const response = await fetch('/api/work_orders/confirm_step', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          step_id: stepId,
+          work_order_id: workOrderId,
+        }),
+      })
+
+      if (response.ok) {
+        // Refresh steps after confirmation
+        await fetchWorkOrderDetails()
+        // Add log entry
+        if (onLogsClick) {
+          // This will be handled by parent component
+        }
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to confirm step')
+      }
+    } catch (err) {
+      console.error('Error confirming step:', err)
+      alert('Failed to confirm step: ' + err.message)
+    } finally {
+      setLoadingStepId(null)
     }
-    setSteps(updatedSteps)
-    setCurrentStep(stepIndex + 1)
   }
 
   const handleStepFail = (stepIndex) => {
@@ -171,28 +188,48 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
     setIssueFormOpen(true)
   }
 
-  const handleIssueSubmit = (issueReport) => {
-    // Update the step with the issue report
-    const updatedSteps = [...steps]
-    updatedSteps[issueReport.stepIndex] = {
-      ...updatedSteps[issueReport.stepIndex],
-      issueReport,
+  const handleIssueSubmit = async (issueReport) => {
+    setIsSubmittingIssue(true)
+    try {
+      // Find the step by index
+      const step = steps[issueReport.stepIndex]
+      if (!step || !step.id) {
+        throw new Error('Step not found')
+      }
+
+      const response = await fetch('/api/work_orders/issue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          step_id: step.id,
+          work_order_id: workOrderId,
+          issue_description: issueReport.description,
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        // Close the modal first
+        setIssueFormOpen(false)
+        setSelectedStepIndex(null)
+        // Refresh steps after regeneration
+        await fetchWorkOrderDetails()
+        // Add log entry
+        if (onLogsClick) {
+          // This will be handled by parent component
+        }
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to report issue')
+      }
+    } catch (err) {
+      console.error('Error submitting issue report:', err)
+      alert('Failed to report issue: ' + err.message)
+    } finally {
+      setIsSubmittingIssue(false)
     }
-    setSteps(updatedSteps)
-    
-    // Handle escalation if checked
-    if (issueReport.escalateToEngineer) {
-      onIssueEscalate?.(issueReport)
-    }
-    
-    // TODO: Send to backend API
-    console.log('Issue report submitted:', issueReport)
-    // Example API call (commented out for now):
-    // fetch(`/api/workorders/${workOrderId}/issues`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(issueReport),
-    // })
   }
 
   const formatSLA = () => {
@@ -320,14 +357,48 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
         </div>
 
         {/* Steps Timeline */}
-        <div className="bg-bg-elevated border border-border rounded-lg shadow-sm p-6">
+        <div className="bg-bg-elevated border border-border rounded-lg shadow-sm p-6 relative">
           <h2 className="text-h2 text-text-primary mb-6">Procedure Steps</h2>
-          <Timeline
-            steps={steps}
-            onRunStep={handleRunStep}
-            currentStep={currentStep}
-            onReportIssue={handleReportIssue}
-          />
+          {loadingStepId && (
+            <div className="absolute inset-0 bg-bg-elevated/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+              <div className="flex flex-col items-center gap-3">
+                <svg
+                  className="w-8 h-8 animate-spin text-accent-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <p className="text-sm text-text-secondary">Processing step...</p>
+              </div>
+            </div>
+          )}
+          {steps.length === 0 ? (
+            <div className="text-sm text-text-tertiary text-center py-8">
+              No steps available yet. The agent is generating steps...
+            </div>
+          ) : (
+            <Timeline
+              steps={steps}
+              workOrderId={workOrderId}
+              onConfirmStep={handleStepComplete}
+              onReportIssue={handleReportIssue}
+              loadingStepId={loadingStepId}
+            />
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -379,6 +450,7 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
           stepTitle={steps[selectedStepIndex]?.title || `Step ${selectedStepIndex + 1}`}
           stepIndex={selectedStepIndex}
           onSubmit={handleIssueSubmit}
+          isSubmitting={isSubmittingIssue}
         />
       )}
     </motion.div>

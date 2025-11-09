@@ -7,14 +7,14 @@ function CreateWorkOrderModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    rack: '',
-    pod: '',
-    aisle: '',
-    aisleType: 'cold',
-    severity: 'medium',
-    team: 'compute',
-    model: '',
-    part_id: '',
+    // rack: '',  // Commented out - not needed for now
+    // pod: '',  // Commented out - not needed for now
+    // aisle: '',  // Commented out - not needed for now
+    // aisleType: 'cold',  // Commented out - not needed for now
+    // severity: 'medium',  // Commented out - not needed for now
+    // team: 'compute',  // Commented out - not needed for now
+    // model: '',  // Commented out - not needed for now
+    // part_id: '',  // Commented out - not needed for now
   })
   const [loading, setLoading] = useState(false)
   const [autoGenerating, setAutoGenerating] = useState(false)
@@ -133,14 +133,14 @@ function CreateWorkOrderModal({ isOpen, onClose, onSubmit }) {
       setFormData({
         title: '',
         description: '',
-        rack: '',
-        pod: '',
-        aisle: '',
-        aisleType: 'cold',
-        severity: 'medium',
-        team: 'compute',
-        model: '',
-        part_id: '',
+        // rack: '',  // Commented out
+        // pod: '',  // Commented out
+        // aisle: '',  // Commented out
+        // aisleType: 'cold',  // Commented out
+        // severity: 'medium',  // Commented out
+        // team: 'compute',  // Commented out
+        // model: '',  // Commented out
+        // part_id: '',  // Commented out
       })
       onClose()
     } catch (err) {
@@ -206,17 +206,17 @@ function CreateWorkOrderModal({ isOpen, onClose, onSubmit }) {
                 onChange={handleTitleChange}
                 required
                 className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
-                placeholder="e.g., Replace GPU Node A12 in Pod-1 Cold Aisle"
+                placeholder="e.g., Replace GPU Node A12"
               />
               <p className="text-xs text-text-tertiary mt-1">
-                Include location details (rack, pod, aisle) for auto-fill
+                The AI will automatically generate steps and determine priority, category, and expertise level
               </p>
             </div>
 
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-text-primary mb-2">
-                Description
+                Description <span className="text-text-tertiary">(Optional)</span>
               </label>
               <textarea
                 name="description"
@@ -224,142 +224,14 @@ function CreateWorkOrderModal({ isOpen, onClose, onSubmit }) {
                 onChange={handleDescriptionChange}
                 rows={3}
                 className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all resize-none"
-                placeholder="Additional details about the work order... (e.g., NVIDIA A100 GPU failure, critical priority)"
+                placeholder="Additional details about the work order..."
               />
             </div>
 
-            {/* Location Section */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Rack <span className="text-danger-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="rack"
-                  value={formData.rack}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all font-mono"
-                  placeholder="Rack-A12"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Pod <span className="text-danger-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="pod"
-                  value={formData.pod}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all font-mono"
-                  placeholder="Pod-1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Aisle <span className="text-danger-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="aisle"
-                  value={formData.aisle}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all font-mono"
-                  placeholder="Aisle-A"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Aisle Type <span className="text-danger-500">*</span>
-                </label>
-                <select
-                  name="aisleType"
-                  value={formData.aisleType}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
-                >
-                  <option value="cold">Cold Aisle</option>
-                  <option value="hot">Hot Aisle</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Hardware Section */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Hardware Model
-                </label>
-                <input
-                  type="text"
-                  name="model"
-                  value={formData.model}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
-                  placeholder="e.g., NVIDIA A100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Part ID
-                </label>
-                <input
-                  type="text"
-                  name="part_id"
-                  value={formData.part_id}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all font-mono"
-                  placeholder="part-123"
-                />
-              </div>
-            </div>
-
-            {/* Priority & Team */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Severity <span className="text-danger-500">*</span>
-                </label>
-                <select
-                  name="severity"
-                  value={formData.severity}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Team <span className="text-danger-500">*</span>
-                </label>
-                <select
-                  name="team"
-                  value={formData.team}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
-                >
-                  <option value="compute">Compute</option>
-                  <option value="network">Network</option>
-                  <option value="storage">Storage</option>
-                </select>
-              </div>
-            </div>
+            {/* Commented out fields - not needed for now */}
+            {/* Location Section - Commented out */}
+            {/* Hardware Section - Commented out */}
+            {/* Priority & Team - Commented out */}
 
             {/* Actions */}
             <div className="flex items-center justify-end space-x-3 pt-4 border-t border-border">
