@@ -11,6 +11,7 @@ import Toast from '../components/Toast'
 import LogsDrawer from '../components/LogsDrawer'
 import CreateWorkOrderModal from '../components/CreateWorkOrderModal'
 import WorkOrderAssignment from '../components/WorkOrderAssignment'
+import ApprovalRequests from '../components/ApprovalRequests'
 import { useToast } from '../hooks/useToast'
 
 function HomePage() {
@@ -20,6 +21,7 @@ function HomePage() {
   const [logsDrawerOpen, setLogsDrawerOpen] = useState(false)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false)
+  const [approvalModalOpen, setApprovalModalOpen] = useState(false)
   const [logs, setLogs] = useState([])
   const [agentReasoning, setAgentReasoning] = useState([])
   const [currentLocation, setCurrentLocation] = useState({ pod: 'Pod-1', aisle: 'Aisle-A' })
@@ -265,7 +267,11 @@ function HomePage() {
 
   return (
     <div className="min-h-screen bg-bg-secondary">
-      <TopBar onSearchChange={setSearchQuery} onCreateClick={() => setCreateModalOpen(true)} />
+      <TopBar 
+        onSearchChange={setSearchQuery} 
+        onCreateClick={() => setCreateModalOpen(true)}
+        onApprovalsClick={() => setApprovalModalOpen(true)}
+      />
       <div className="relative">
         <SplitLayout
           leftPane={
@@ -355,6 +361,11 @@ function HomePage() {
         isOpen={assignmentModalOpen}
         onClose={() => setAssignmentModalOpen(false)}
         onAssign={handleAssignWorkOrder}
+      />
+      <ApprovalRequests
+        isOpen={approvalModalOpen}
+        onClose={() => setApprovalModalOpen(false)}
+        workOrderId={selectedWorkOrderId}
       />
     </div>
   )
