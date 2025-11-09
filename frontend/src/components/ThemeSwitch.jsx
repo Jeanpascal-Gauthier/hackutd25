@@ -13,9 +13,9 @@ function ThemeSwitch() {
   ]
 
   const themes = [
-    { id: 'light', name: 'Light', icon: '☀️' },
-    { id: 'dark', name: 'Dark', icon: '🌙' },
-    { id: 'system', name: 'System', icon: '💻' },
+    { id: 'light', name: 'Light'},
+    { id: 'dark', name: 'Dark'},
+    { id: 'system', name: 'System'},
   ]
 
   return (

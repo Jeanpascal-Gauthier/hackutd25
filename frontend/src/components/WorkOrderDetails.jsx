@@ -5,9 +5,10 @@ import StatCard from './StatCard'
 import Timeline from './Timeline'
 import PrimaryButton from './PrimaryButton'
 import InventoryBadge from './InventoryBadge'
+import IssueReportForm from './IssueReportForm'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 
-function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick }) {
+function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan }) {
   const [workOrder, setWorkOrder] = useState(null)
   const [inventory, setInventory] = useState(null)
   const [steps, setSteps] = useState([])
@@ -15,6 +16,8 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [runningPlan, setRunningPlan] = useState(false)
+  const [issueFormOpen, setIssueFormOpen] = useState(false)
+  const [selectedStepIndex, setSelectedStepIndex] = useState(null)
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
@@ -161,13 +164,38 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick }
     }
   }
 
-  const formatSLA = () => {
-    if (!workOrder?.created_at) return 'N/A'
-    const created = new Date(workOrder.created_at)
-    const now = new Date()
-    const hours = Math.floor((now - created) / 3600000)
-    return `${hours}h`
+  const handleReportIssue = (stepIndex) => {
+    setSelectedStepIndex(stepIndex)
+    setIssueFormOpen(true)
   }
+
+  const handleIssueSubmit = (issueReport) => {
+    // Update the step with the issue report
+    const updatedSteps = [...steps]
+    updatedSteps[issueReport.stepIndex] = {
+      ...updatedSteps[issueReport.stepIndex],
+      issueReport,
+    }
+    setSteps(updatedSteps)
+    
+    // TODO: Send to backend API
+    console.log('Issue report submitted:', issueReport)
+    // Example API call (commented out for now):
+    // fetch(`/api/workorders/${workOrderId}/issues`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(issueReport),
+    // })
+  }
+
+  const handleRunPlan = async () => {
+    setRunningPlan(true)
+    onRunPlan?.(workOrderId)
+    try {
+      const response = await fetch(`/api/start_agent/${workOrderId}`, {
+        method: 'POST',
+      })
+      const result = await response.json()
 
   if (!workOrderId) {
     return (
@@ -294,6 +322,16 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick }
             onStepComplete={handleStepComplete}
             onStepFail={handleStepFail}
             currentStep={currentStep}
+          />
+        </div>
+        {/* Steps Timeline */}
+        <div className="bg-bg-elevated border border-border rounded-lg shadow-sm p-6">
+          <h2 className="text-h2 text-text-primary mb-6">Procedure Steps</h2>
+          <Timeline
+            steps={steps}
+            onRunStep={handleRunStep}
+            currentStep={currentStep}
+            onReportIssue={handleReportIssue}
           />
         </div>
 
