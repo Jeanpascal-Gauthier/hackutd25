@@ -99,7 +99,7 @@ function SignupPage() {
           <h1 className="text-3xl font-semibold text-text-primary mb-2">
             Create Account
           </h1>
-          <p className="text-text-secondary">Join DataCenterOps Copilot</p>
+          <p className="text-text-secondary">Join DataPilot</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

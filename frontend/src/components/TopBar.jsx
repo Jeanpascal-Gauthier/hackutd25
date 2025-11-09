@@ -13,7 +13,7 @@ function TopBar({ onSearchChange, onCreateClick, onApprovalsClick }) {
         {/* Left: Product Name */}
         <div className="flex items-center flex-shrink-0">
           <h1 className="text-lg md:text-h1 text-text-primary font-semibold whitespace-nowrap">
-            DataCenterOps Copilot
+            DataPilot
           </h1>
         </div>
 
