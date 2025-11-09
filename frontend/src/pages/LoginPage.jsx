@@ -68,7 +68,7 @@ function LoginPage() {
       >
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold text-text-primary mb-2">
-            DataCenterOps Copilot
+            DataPilot
           </h1>
           <p className="text-text-secondary">Sign in to your account</p>
         </div>
