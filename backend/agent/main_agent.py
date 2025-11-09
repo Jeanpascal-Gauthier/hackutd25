@@ -41,7 +41,7 @@ llm = OpenAI(
 
 agent_model = ChatNVIDIA(
     base_url="https://integrate.api.nvidia.com/v1",
-    model="nvidia/nvidia-nemotron-nano-9b-v2",
+    model="nvidia/llama-3.3-nemotron-super-49b-v1",
     temperature=0.2,
     api_key=os.getenv("NVIDIA_API_KEY")
 )
@@ -76,10 +76,11 @@ Rules:
 """
 
 
+
 agent = create_agent(
     model=agent_model,
-    tools=[tools.reboot_server],
-    system_prompt=agent_prompt
+    tools=[tools.reboot_server, tools.check_existing_specs, tools.check_inventory, tools.check_temperature, tools.deploy_update, tools.escalate_to_higher_engineer, tools.order_supplies, tools.run_diagnostics],
+    system_prompt="You are a Data Center AI assistant responsible for coordinating maintenance operations."
 )
 
 def run_agent_from_step(step_id: str, work_order_id: str):
@@ -104,6 +105,8 @@ def run_agent_from_step(step_id: str, work_order_id: str):
         msg = {
             "role": "user",
             "content": f"""
+{agent_prompt}
+
 Work Order Title: {work_order.title}
 Work Order Description: {work_order.description}
 Priority: {work_order.priority}
@@ -161,6 +164,8 @@ def execute_steps_automatically(work_order, plan_steps, start_from_step_number=N
         msg = {
             "role": "user",
             "content": f"""
+{agent_prompt}
+
 Work Order Title: {work_order.title}
 Work Order Description: {work_order.description}
 Priority: {work_order.priority}
@@ -261,6 +266,8 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
         current_plan_step.status = "in_progress"
         current_plan_step.save()
         msg = {"role": "user", "content": f"""
+    {agent_prompt}
+
     Work Order Title: {state['work_order_title']}
     Work Order Description: {state['work_order_description']}
     Priority: {data['priority']}
@@ -282,17 +289,12 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
         most_recent_msg = result['messages'][-1]
 
         content = json.loads(most_recent_msg.content)
+        print("CONTENT: ", content)
         current_plan_step.executor = content['executor']
         current_plan_step.save()
         if content['executor'] != 'agent':
             break
         else:
-            print("HADSHFJKSDFHJKASDHFJKSDHF")
-            print("HADSHFJKSDFHJKASDHFJKSDHF")
-            print("HADSHFJKSDFHJKASDHFJKSDHF")
-            print("HADSHFJKSDFHJKASDHFJKSDHF")
-            print("HADSHFJKSDFHJKASDHFJKSDHF")
-            print("HADSHFJKSDFHJKASDHFJKSDHF")
             current_plan_step.status = "success"
             current_plan_step.executed_at = datetime.utcnow()
 
