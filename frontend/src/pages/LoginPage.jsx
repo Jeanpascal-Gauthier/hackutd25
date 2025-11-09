@@ -59,29 +59,29 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bg-secondary flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8"
+        className="w-full max-w-md bg-bg-elevated rounded-2xl shadow-lg border border-border p-8"
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-slate-900 mb-2">
+          <h1 className="text-3xl font-semibold text-text-primary mb-2">
             DataCenterOps Copilot
           </h1>
-          <p className="text-slate-600">Sign in to your account</p>
+          <p className="text-text-secondary">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-danger-50 dark:bg-danger-50 border border-danger-200 dark:border-danger-200 text-danger-600 dark:text-danger-500 px-4 py-3 rounded-lg text-sm">
               {error}
             </div>
           )}
           
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-text-primary mb-2">
               Email
             </label>
             <input
@@ -89,13 +89,13 @@ function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-bg-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
               placeholder="technician@datacenter.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-text-primary mb-2">
               Password
             </label>
             <input
@@ -103,7 +103,7 @@ function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-bg-secondary border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
               placeholder="••••••••"
             />
           </div>
@@ -111,16 +111,16 @@ function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-accent-500 text-white py-3 rounded-lg font-medium hover:bg-accent-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-text-secondary">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-blue-500 hover:text-blue-600 font-medium">
+            <Link to="/signup" className="text-accent-500 hover:text-accent-600 font-medium">
               Sign up
             </Link>
           </p>

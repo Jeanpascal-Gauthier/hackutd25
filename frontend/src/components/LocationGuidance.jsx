@@ -43,18 +43,18 @@ function LocationGuidance({ workOrder }) {
           </svg>
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-slate-900 mb-1">Location</h3>
+          <h3 className="font-semibold text-text-primary mb-1">Location</h3>
           <div className="space-y-1 text-sm">
             <div className="flex items-center space-x-2">
-              <span className="text-slate-600">Pod:</span>
-              <span className="font-mono font-medium text-slate-900">{pod}</span>
+              <span className="text-text-secondary">Pod:</span>
+              <span className="font-mono font-medium text-text-primary">{pod}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-slate-600">Aisle:</span>
-              <span className="font-mono font-medium text-slate-900">{aisle}</span>
+              <span className="text-text-secondary">Aisle:</span>
+              <span className="font-mono font-medium text-text-primary">{aisle}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-slate-600">Type:</span>
+              <span className="text-text-secondary">Type:</span>
               <span
                 className={`font-medium ${
                   isColdAisle ? 'text-cold-aisle-600' : 'text-hot-aisle-600'
