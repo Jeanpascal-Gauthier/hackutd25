@@ -175,6 +175,13 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
         if content['executor'] != 'agent':
             break
         else:
+            print("HADSHFJKSDFHJKASDHFJKSDHF")
+            print("HADSHFJKSDFHJKASDHFJKSDHF")
+            print("HADSHFJKSDFHJKASDHFJKSDHF")
+            print("HADSHFJKSDFHJKASDHFJKSDHF")
+            print("HADSHFJKSDFHJKASDHFJKSDHF")
+            print("HADSHFJKSDFHJKASDHFJKSDHF")
             current_plan_step.status = "success"
+            current_plan_step.executed_at = datetime.utcnow()
 
         current_plan_step.save()
