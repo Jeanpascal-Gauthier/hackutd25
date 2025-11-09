@@ -1,12 +1,10 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from agent.main_agent import run_agent
 from mongoengine import connect
 from dotenv import load_dotenv
 import os
+import agent.main_agent
 from routes.work_orders import work_orders_bp
-
-load_dotenv('./')
 
 app = Flask(__name__)
 CORS(app)
