@@ -124,7 +124,7 @@ def run_agent_from_step(step_id: str, work_order_id: str):
         step.executor = executor
         step.save()
         if step.executor != 'agent':
-            log_human_interaction(work_order, step, data['reasoning'])
+            log_human_interaction(work_order, step, data['reason'])
             break
         else:
             step.status = "success"
@@ -175,7 +175,7 @@ def execute_steps_automatically(work_order, plan_steps, start_from_step_number=N
         
         if step.executor != 'agent':
             # This step requires technician - keep it as in_progress
-            log_human_interaction(work_order, step, data['reasoning'])
+            log_human_interaction(work_order, step, data['reason'])
             return step
         else:
             # Agent can execute this step
@@ -272,7 +272,7 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
         current_plan_step.executor = executor
         current_plan_step.save()
         if current_plan_step.executor != 'agent':
-            log_human_interaction(work_order, current_plan_step, content['reasoning'])
+            log_human_interaction(work_order, current_plan_step, content['reason'])
             break
         else:
             current_plan_step.status = "success"
@@ -367,10 +367,11 @@ If this task requires a human technician (physical work, complex judgment, etc),
     return msg
 
 def log_human_interaction(work_order, plan_step, reasoning):
+    print(f"[LOG] Step {work_order.id} | WorkOrder {plan_step.id}")
     log = AgentLog(
         work_order=work_order,
         related_step=plan_step,
-        action="Human intervention requested",
+        agent_action="Human intervention requested",
         result=reasoning,
         timestamp=datetime.utcnow()
     )
