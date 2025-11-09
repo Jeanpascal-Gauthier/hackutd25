@@ -39,18 +39,39 @@ llm = OpenAI(
 agent_model = ChatNVIDIA(
     base_url="https://integrate.api.nvidia.com/v1",
     model="nvidia/nvidia-nemotron-nano-9b-v2",
-    temperature=0.0,
+    temperature=0.2,
     api_key=os.getenv("NVIDIA_API_KEY")
 )
 
 agent_prompt = f"""
-You are a data center AI assistant. Your job is to execute tasks given the tools available to you, and create an execution plan according to the description of each step.
+You are a Data Center AI Assistant. Your job is to decide who executes each task.
 
-Return a JSON object with:
-    - executor, either "agent" or "technician", representing who will execute the task. If this value is "agent", then it is expected that you will also have a tool call in your response.
+Context:
+- You will receive a list of all steps (past and future) so you don't repeat actions.
+- You will also receive the current step to execute.
+- Available tools:
+  - restart_server: Restart a specific server.
+  - check_temperature: Check the temperature of a rack or unit.
+  - deploy_update: Deploy a software update to a machine group.
 
-DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BLOCKS IN MARKDOWN.
+Decision process:
+1. Read the current step.
+2. If any of the tools can complete the task, set "executor" to "agent" and include the tool call.
+3. If none of the tools can perform the task, set "executor" to "technician".
+4. Return ONLY the JSON object below.
+
+Required output format:
+{{
+  "executor": "agent" | "technician"
+}}
+
+Rules:
+- If "executor" is "agent", include a valid tool call.
+- If "executor" is "technician", include NO tool call.
+- Output only valid JSON (no markdown, no explanations, no code blocks).
+- Never include extra keys or escaped characters.
 """
+
 
 agent = create_agent(
     model=agent_model,
@@ -89,21 +110,27 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
     data = json.loads(result.choices[0].message.content)
     print(result)
 
-    messages = []
+    all_steps = list(map(lambda x: f"Order: {x['step_number']}, Description: {x['description']}", data['steps']))
     for step in data['steps']:
-        messages.append({"role": "user", "content": f"""
+        msg = {"role": "user", "content": f"""
     Work Order Title: {state['work_order_title']}
     Work Order Description: {state['work_order_description']}
     Priority: {data['priority']}
     Category: {data['category']}
     Estimated Expertise Level: {data['estimated_expertise_level']}
-    Step:
+    Current Step:
         - Order: {step['step_number']}
         - Description: {step['description']}
-    """})
+
+    All Steps:
+        {chr(10).join(all_steps)}
+    """}
         result = agent.invoke({
-            "messages": messages
+            "messages": [msg]
         })
-        mapped = list(map(lambda x: (x.content, x.tool_calls), result['messages']))
-        print()
-        print(mapped)
+        # print(mapped)
+        # print(result)
+        most_recent_msg = result['messages'][-1]
+        content = json.loads(most_recent_msg['content'])
+        if content['executor'] != 'agent':
+            break
