@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import ThemeSwitch from './ThemeSwitch'
+import UserMenu from './UserMenu'
 
 function TopBar({ onSearchChange, onCreateClick, onApprovalsClick }) {
   const handleSearchChange = (e) => {
@@ -88,24 +89,8 @@ function TopBar({ onSearchChange, onCreateClick, onApprovalsClick }) {
           {/* Theme Switch */}
           <ThemeSwitch />
 
-          {/* Logout */}
-          <button
-            onClick={() => {
-              localStorage.removeItem('auth_token')
-              window.location.href = '/login'
-            }}
-            className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
-          >
-            Logout
-          </button>
-
-          {/* Avatar */}
-          <button
-            className="w-8 h-8 rounded-full bg-accent-500 text-white flex items-center justify-center text-sm font-medium hover:bg-accent-600 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2"
-            aria-label="User menu"
-          >
-            T
-          </button>
+          {/* User Menu */}
+          <UserMenu />
         </div>
       </div>
     </header>
