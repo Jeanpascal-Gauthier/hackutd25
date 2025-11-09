@@ -207,32 +207,36 @@ function HomePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
-          status: 'pending',
-          location: {
-            pod: formData.pod,
-            aisle: formData.aisle,
-            aisleType: formData.aisleType,
-          },
+          title: formData.title,
+          description: formData.description || '',
         }),
       })
 
       if (response.ok) {
-        const newWorkOrder = await response.json()
-        addToast('Work order created successfully', 'success', `Created: ${newWorkOrder.title}`)
+        const result = await response.json()
+        addToast('Work order created successfully', 'success', `Agent is generating steps for: ${formData.title}`)
         setLogs(prev => [
           ...prev,
           {
-            message: `Technician: Created new work order "${newWorkOrder.title}"`,
+            message: `Engineer: Created new work order "${formData.title}"`,
             type: 'success',
-            source: 'technician',
+            source: 'engineer',
+            timestamp: new Date().toISOString(),
+          },
+          {
+            message: `Agent: Analyzing work order and generating steps...`,
+            type: 'info',
+            source: 'agent',
             timestamp: new Date().toISOString(),
           },
         ])
         // Refresh the work orders list by triggering a re-fetch
-        window.location.reload()
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
       } else {
-        throw new Error('Failed to create work order')
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create work order')
       }
     } catch (err) {
       addToast('Failed to create work order', 'error', err.message)

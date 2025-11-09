@@ -1,8 +1,32 @@
 import { motion } from 'framer-motion'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 
-function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
+function Timeline({ steps = [], workOrderId, onConfirmStep, onReportIssue, loadingStepId = null }) {
   const prefersReducedMotion = useReducedMotion()
+  
+  // Loading spinner component
+  const LoadingSpinner = ({ size = 'w-4 h-4' }) => (
+    <svg
+      className={`${size} animate-spin text-current`}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
+  )
 
   if (steps.length === 0) {
     return (
@@ -15,21 +39,16 @@ function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
   return (
     <ol className="space-y-4">
       {steps.map((step, index) => {
-        const isCompleted = index < currentStep
-        const isCurrent = index === currentStep
-        const hasResult = step.result !== undefined
-        const hasIssue = step.issueReport !== undefined
-        
-        // Check if all previous steps are completed (no issues and completed)
-        const canComplete = index === 0 
-          ? true // First step can always be completed
-          : steps.slice(0, index).every((prevStep, prevIndex) => 
-              prevIndex < currentStep && !prevStep.issueReport
-            )
+        const isCompleted = step.status === 'success'
+        const isInProgress = step.status === 'in_progress'
+        const isPending = step.status === 'pending'
+        const isFailed = step.status === 'failure'
+        const hasResult = step.result !== undefined && step.result !== null
+        const hasIssue = step.issueReport !== undefined && step.issueReport !== null
 
         return (
           <motion.li
-            key={index}
+            key={step.id || index}
             initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -10 }}
             animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, x: 0 }}
             transition={{ delay: index * 0.1, duration: 0.2 }}
@@ -41,7 +60,7 @@ function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
                 className={`absolute left-3 top-8 w-0.5 h-full ${
                   isCompleted && !hasIssue
                     ? 'bg-success-500'
-                    : hasIssue
+                    : hasIssue || isFailed
                     ? 'bg-danger-500'
                     : 'bg-border'
                 }`}
@@ -66,7 +85,7 @@ function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
                     />
                   </svg>
                 </div>
-              ) : hasIssue ? (
+              ) : hasIssue || isFailed ? (
                 <div className="w-6 h-6 rounded-full bg-danger-500 flex items-center justify-center">
                   <svg
                     className="w-4 h-4 text-white"
@@ -85,13 +104,13 @@ function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
               ) : (
                 <div
                   className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                    isCurrent
+                    isInProgress
                       ? 'border-accent-500 bg-accent-50 dark:bg-accent-50'
                       : 'border-border bg-bg-elevated'
                   }`}
                 >
-                  {isCurrent && (
-                    <div className="w-2 h-2 rounded-full bg-accent-500" />
+                  {isInProgress && (
+                    <div className="w-2 h-2 rounded-full bg-accent-500 animate-pulse" />
                   )}
                 </div>
               )}
@@ -100,42 +119,69 @@ function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
             {/* Step Content */}
             <div
               className={`${
-                isCurrent ? 'bg-accent-50 dark:bg-accent-50' : hasIssue ? 'bg-danger-50 dark:bg-danger-900/20' : ''
+                isInProgress ? 'bg-accent-50 dark:bg-accent-50' : hasIssue || isFailed ? 'bg-danger-50 dark:bg-danger-900/20' : ''
               } rounded-lg p-4 transition-colors`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
-                  <h4 className="text-sm font-medium text-text-primary mb-1">
-                    {step.title || `Step ${index + 1}`}
-                  </h4>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="text-sm font-medium text-text-primary">
+                      {step.title || `Step ${step.step_number || index + 1}`}
+                    </h4>
+                    {step.executor && (
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        step.executor === 'agent' 
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                          : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                      }`}>
+                        {step.executor === 'agent' ? 'Agent' : 'Technician'}
+                      </span>
+                    )}
+                    {step.status && (
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        step.status === 'success' 
+                          ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400'
+                          : step.status === 'in_progress'
+                          ? 'bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-400'
+                          : step.status === 'failure'
+                          ? 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-400'
+                          : 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400'
+                      }`}>
+                        {step.status}
+                      </span>
+                    )}
+                  </div>
                   {step.description && (
                     <p className="text-sm text-text-secondary">
                       {step.description}
                     </p>
                   )}
                 </div>
-                {!isCompleted && (
+                {isInProgress && (
                   <div className="ml-4 flex items-center space-x-2">
-                    {onRunStep && (
+                    {onConfirmStep && (
                       <button
-                        onClick={() => onRunStep(index)}
-                        disabled={!canComplete}
-                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          canComplete
-                            ? 'text-accent-600 dark:text-accent-400 hover:bg-accent-100 dark:hover:bg-accent-50'
-                            : 'text-text-tertiary cursor-not-allowed opacity-50'
-                        }`}
-                        title={!canComplete ? 'Complete previous steps first' : ''}
+                        onClick={() => onConfirmStep(step.id, workOrderId)}
+                        disabled={loadingStepId === step.id}
+                        className="px-3 py-1.5 text-xs font-medium text-success-600 dark:text-success-400 hover:bg-success-100 dark:hover:bg-success-900/30 rounded transition-colors border border-success-200 dark:border-success-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                       >
-                        Step Completed
+                        {loadingStepId === step.id ? (
+                          <>
+                            <LoadingSpinner size="w-3 h-3" />
+                            Processing...
+                          </>
+                        ) : (
+                          'Success'
+                        )}
                       </button>
                     )}
                     {onReportIssue && (
                       <button
                         onClick={() => onReportIssue(index)}
-                        className="px-3 py-1.5 text-xs font-medium text-danger-600 dark:text-danger-400 hover:bg-danger-100 dark:hover:bg-danger-900/30 rounded transition-colors border border-danger-200 dark:border-danger-800"
+                        disabled={loadingStepId === step.id}
+                        className="px-3 py-1.5 text-xs font-medium text-danger-600 dark:text-danger-400 hover:bg-danger-100 dark:hover:bg-danger-900/30 rounded transition-colors border border-danger-200 dark:border-danger-800 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Issue Encountered
+                        Issue
                       </button>
                     )}
                   </div>
@@ -143,7 +189,7 @@ function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
               </div>
 
               {/* Step Result */}
-              {hasResult && (
+              {hasResult && step.result && (
                 <div
                   className={`mt-3 p-3 rounded border text-sm ${
                     step.result.success
@@ -182,8 +228,8 @@ function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
                       </svg>
                     )}
                     <div>
-                      <p className="font-medium">{step.result.message}</p>
-                      {step.result.timestamp && (
+                      <p className="font-medium">{step.result?.message || 'Step completed'}</p>
+                      {step.result?.timestamp && (
                         <p className="text-xs mt-1 opacity-75">
                           {new Date(step.result.timestamp).toLocaleTimeString()}
                         </p>
@@ -215,22 +261,15 @@ function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
                         <p className="text-sm font-semibold text-danger-700 dark:text-danger-300">
                           Issue Reported
                         </p>
-                        <span className={`text-xs px-2 py-1 rounded font-medium ${
-                          step.issueReport.urgency === 'high'
-                            ? 'bg-danger-200 dark:bg-danger-800 text-danger-800 dark:text-danger-200'
-                            : step.issueReport.urgency === 'medium'
-                            ? 'bg-warning-200 dark:bg-warning-800 text-warning-800 dark:text-warning-200'
-                            : 'bg-success-200 dark:bg-success-800 text-success-800 dark:text-success-200'
-                        }`}>
-                          {step.issueReport.urgency.toUpperCase()}
-                        </span>
                       </div>
-                      <p className="text-xs text-danger-600 dark:text-danger-400 mb-2">
-                        <span className="font-medium">Reason:</span>{' '}
-                        {step.issueReport.reason.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </p>
+                      {step.issueReport.reason && (
+                        <p className="text-xs text-danger-600 dark:text-danger-400 mb-2">
+                          <span className="font-medium">Reason:</span>{' '}
+                          {step.issueReport.reason.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </p>
+                      )}
                       <p className="text-sm text-danger-700 dark:text-danger-300 mb-2">
-                        {step.issueReport.description}
+                        {step.issueReport.description || 'Issue reported'}
                       </p>
                       {step.issueReport.additionalNotes && (
                         <p className="text-xs text-danger-600 dark:text-danger-400 italic">
@@ -241,6 +280,17 @@ function Timeline({ steps = [], onRunStep, currentStep, onReportIssue }) {
                         <p className="text-xs mt-2 text-danger-500 dark:text-danger-500 opacity-75">
                           Reported at {new Date(step.issueReport.timestamp).toLocaleString()}
                         </p>
+                      )}
+                      {step.issueReport.urgency && (
+                        <span className={`text-xs px-2 py-1 rounded font-medium ${
+                          step.issueReport.urgency === 'high'
+                            ? 'bg-danger-200 dark:bg-danger-800 text-danger-800 dark:text-danger-200'
+                            : step.issueReport.urgency === 'medium'
+                            ? 'bg-warning-200 dark:bg-warning-800 text-warning-800 dark:text-warning-200'
+                            : 'bg-success-200 dark:bg-success-800 text-success-800 dark:text-success-200'
+                        }`}>
+                          {step.issueReport.urgency.toUpperCase()}
+                        </span>
                       )}
                     </div>
                   </div>
