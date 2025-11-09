@@ -48,6 +48,28 @@ export default {
           500: 'var(--danger-500)',
           600: 'var(--danger-600)',
         },
+        'cold-aisle': {
+          50: 'var(--cold-aisle-50)',
+          100: 'var(--cold-aisle-100)',
+          500: 'var(--cold-aisle-500)',
+          600: 'var(--cold-aisle-600)',
+        },
+        'hot-aisle': {
+          50: 'var(--hot-aisle-50)',
+          100: 'var(--hot-aisle-100)',
+          500: 'var(--hot-aisle-500)',
+          600: 'var(--hot-aisle-600)',
+        },
+        'inventory-warning': {
+          50: 'var(--inventory-warning-50)',
+          500: 'var(--inventory-warning-500)',
+          600: 'var(--inventory-warning-600)',
+        },
+        'priority-critical': {
+          50: 'var(--priority-critical-50)',
+          500: 'var(--priority-critical-500)',
+          600: 'var(--priority-critical-600)',
+        },
       },
       fontFamily: {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],

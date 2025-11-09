@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 
-function Timeline({ steps = [], onRunStep, currentStep }) {
+function Timeline({ steps = [], onRunStep, onStepComplete, onStepFail, currentStep }) {
   const prefersReducedMotion = useReducedMotion()
 
   if (steps.length === 0) {
@@ -88,14 +88,32 @@ function Timeline({ steps = [], onRunStep, currentStep }) {
                     </p>
                   )}
                 </div>
-                {onRunStep && !isCompleted && (
-                  <button
-                    onClick={() => onRunStep(index)}
-                    className="ml-4 px-3 py-1.5 text-xs font-medium text-accent-600 dark:text-accent-400 hover:bg-accent-100 dark:hover:bg-accent-50 rounded transition-colors"
-                  >
-                    Run Step
-                  </button>
-                )}
+                <div className="ml-4 flex items-center space-x-2">
+                  {onRunStep && !isCompleted && !hasResult && (
+                    <button
+                      onClick={() => onRunStep(index)}
+                      className="px-3 py-1.5 text-xs font-medium text-accent-600 dark:text-accent-400 hover:bg-accent-100 dark:hover:bg-accent-50 rounded transition-colors"
+                    >
+                      Run Step
+                    </button>
+                  )}
+                  {isCurrent && !hasResult && (
+                    <>
+                      <button
+                        onClick={() => onStepComplete?.(index)}
+                        className="px-3 py-1.5 text-xs font-medium text-success-600 hover:bg-success-50 rounded transition-colors border border-success-200"
+                      >
+                        ✓ Complete
+                      </button>
+                      <button
+                        onClick={() => onStepFail?.(index)}
+                        className="px-3 py-1.5 text-xs font-medium text-danger-600 hover:bg-danger-50 rounded transition-colors border border-danger-200"
+                      >
+                        ✗ Fail
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Step Result */}

@@ -1,6 +1,7 @@
+import { Link } from 'react-router-dom'
 import ThemeSwitch from './ThemeSwitch'
 
-function TopBar({ onSearchChange }) {
+function TopBar({ onSearchChange, onCreateClick }) {
   const handleSearchChange = (e) => {
     onSearchChange?.(e.target.value)
   }
@@ -42,6 +43,15 @@ function TopBar({ onSearchChange }) {
 
         {/* Right: Utility Actions */}
         <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
+          {/* Create Work Order Button */}
+          <button
+            onClick={onCreateClick}
+            className="px-4 py-2 bg-accent-500 text-white text-sm font-medium rounded-lg hover:bg-accent-600 transition-colors shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2"
+          >
+            <span className="hidden sm:inline">Create Work Order</span>
+            <span className="sm:hidden">+ New</span>
+          </button>
+
           {/* Help */}
           <button
             className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
@@ -59,6 +69,17 @@ function TopBar({ onSearchChange }) {
 
           {/* Theme Switch */}
           <ThemeSwitch />
+
+          {/* Logout */}
+          <button
+            onClick={() => {
+              localStorage.removeItem('auth_token')
+              window.location.href = '/login'
+            }}
+            className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
+          >
+            Logout
+          </button>
 
           {/* Avatar */}
           <button

@@ -1,7 +1,21 @@
-function InventoryBadge({ available, quantity, location }) {
+function InventoryBadge({ available, quantity, location, lowStock }) {
+  const isWarning = lowStock || (quantity !== undefined && quantity < 5)
+  
   return (
-    <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-bg-elevated border border-border rounded-lg">
-      <div className={`w-2 h-2 rounded-full ${available ? 'bg-success-500' : 'bg-danger-500'}`} />
+    <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${
+      isWarning 
+        ? 'bg-inventory-warning-50 border-inventory-warning-500' 
+        : available 
+        ? 'bg-bg-elevated border-border' 
+        : 'bg-danger-50 border-danger-500'
+    }`}>
+      <div className={`w-2 h-2 rounded-full ${
+        available 
+          ? isWarning 
+            ? 'bg-inventory-warning-500' 
+            : 'bg-success-500' 
+          : 'bg-danger-500'
+      }`} />
       <div className="flex items-center space-x-2">
         <span className="text-sm font-medium text-text-primary">
           {available ? 'Available' : 'Out of Stock'}
@@ -22,4 +36,3 @@ function InventoryBadge({ available, quantity, location }) {
 }
 
 export default InventoryBadge
-

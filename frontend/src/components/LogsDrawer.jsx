@@ -57,16 +57,27 @@ function LogsDrawer({ isOpen, onClose, logs }) {
                       'bg-accent-500'
                     }`} />
                     <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        {log.source && (
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                            log.source === 'agent' 
+                              ? 'bg-accent-50 dark:bg-accent-50 text-accent-600 dark:text-accent-500' 
+                              : 'bg-success-50 dark:bg-success-50 text-success-600 dark:text-success-500'
+                          }`}>
+                            {log.source === 'agent' ? '🤖 Agent' : '👤 Technician'}
+                          </span>
+                        )}
+                      </div>
                       <p className={`text-sm ${
-                        log.type === 'error' ? 'text-danger-500' :
-                        log.type === 'warning' ? 'text-warning-500' :
-                        log.type === 'success' ? 'text-success-500' :
-                        'text-text-primary'
+                        log.type === 'error' ? 'text-danger-500 dark:text-danger-400' :
+                        log.type === 'warning' ? 'text-warning-500 dark:text-warning-400' :
+                        log.type === 'success' ? 'text-success-500 dark:text-success-400' :
+                        'text-text-primary dark:text-text-primary'
                       }`}>
                         {log.message || log}
                       </p>
                       {log.timestamp && (
-                        <p className="text-xs text-text-tertiary mt-1">
+                        <p className="text-xs text-text-tertiary dark:text-text-tertiary mt-1">
                           {new Date(log.timestamp).toLocaleTimeString()}
                         </p>
                       )}
