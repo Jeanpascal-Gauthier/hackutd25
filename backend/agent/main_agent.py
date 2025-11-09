@@ -10,7 +10,7 @@ from langchain.messages import AnyMessage, AIMessage, ToolMessage
 from langchain.agents import create_agent
 from models.WorkOrder import WorkOrder
 from models.PlanStep import PlanStep
-from datetime import datetime
+from datetime import datetime, timezone
 
 load_dotenv()
 
@@ -117,7 +117,7 @@ def run_agent_from_step(step_id: str, work_order_id: str):
             break
         else:
             step.status = "success"
-            step.executed_at = datetime.utcnow()
+            step.executed_at = datetime.now(timezone.utc)
             step.save()
 
 def execute_steps_automatically(work_order, plan_steps, start_from_step_number=None):
@@ -167,7 +167,7 @@ def execute_steps_automatically(work_order, plan_steps, start_from_step_number=N
         else:
             # Agent can execute this step
             step.status = "success"
-            step.executed_at = datetime.utcnow()
+            step.executed_at = datetime.now(timezone.utc)
             step.save()
 
     return None  # All steps completed by agent
@@ -214,7 +214,7 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
         category=data['category'],
         estimated_expertise_level=data['estimated_expertise_level'],
         status="pending",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
 
     work_order.save()

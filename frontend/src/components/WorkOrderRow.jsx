@@ -7,17 +7,38 @@ function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
 
   const formatTime = (dateString) => {
     if (!dateString) return 'N/A'
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now - date
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
+    try {
+      // Parse the date string - handle both UTC and local time
+      const date = new Date(dateString)
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid date'
+      }
+      
+      const now = new Date()
+      const diffMs = now.getTime() - date.getTime()
+      
+      // Handle negative time (shouldn't happen, but handle gracefully)
+      if (diffMs < 0) {
+        // If negative, it means the date is in the future (likely timezone issue)
+        // Return "Just now" or the actual date
+        return 'Just now'
+      }
+      
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMs / 3600000)
+      const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      if (diffMins < 1) return 'Just now'
+      if (diffMins < 60) return `${diffMins}m ago`
+      if (diffHours < 24) return `${diffHours}h ago`
+      if (diffDays < 7) return `${diffDays}d ago`
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    } catch (e) {
+      console.error('Error formatting date:', e, dateString)
+      return 'N/A'
+    }
   }
 
 
