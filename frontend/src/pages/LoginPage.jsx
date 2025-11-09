@@ -1,20 +1,29 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useAuth } from '../contexts/AuthContext'
 
 function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    // Simulate login
+    // Simulate login - in real app, this would call an API
     setTimeout(() => {
+      // For demo: determine role from email or default to technician
+      const role = email.includes('engineer') ? 'engineer' : 'technician'
+      login({
+        email,
+        name: email.split('@')[0],
+        role,
+        token: 'demo_token',
+      })
       setLoading(false)
-      localStorage.setItem('auth_token', 'demo_token')
       navigate('/')
     }, 1000)
   }

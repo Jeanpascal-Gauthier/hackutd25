@@ -11,8 +11,10 @@ import Toast from '../components/Toast'
 import LogsDrawer from '../components/LogsDrawer'
 import CreateWorkOrderModal from '../components/CreateWorkOrderModal'
 import WorkOrderAssignment from '../components/WorkOrderAssignment'
+import EscalatedIssues from '../components/EscalatedIssues'
 import ApprovalRequests from '../components/ApprovalRequests'
 import { useToast } from '../hooks/useToast'
+import { useAuth } from '../contexts/AuthContext'
 
 function HomePage() {
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState(null)
@@ -24,20 +26,23 @@ function HomePage() {
   const [approvalModalOpen, setApprovalModalOpen] = useState(false)
   const [logs, setLogs] = useState([])
   const [agentReasoning, setAgentReasoning] = useState([])
+  const [escalatedIssues, setEscalatedIssues] = useState([])
   const [currentLocation, setCurrentLocation] = useState({ pod: 'Pod-1', aisle: 'Aisle-A' })
   const { toasts, addToast, removeToast } = useToast()
+  const { user, isEngineer } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Check if user is logged in (simplified - in real app, use auth context)
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      // For development: auto-login if no token exists
-      localStorage.setItem('auth_token', 'demo_token')
-      // Uncomment the line below to enable auth redirect in production:
-      // navigate('/login')
+    // Load escalated issues from localStorage (in real app, fetch from API)
+    const stored = localStorage.getItem('escalated_issues')
+    if (stored) {
+      try {
+        setEscalatedIssues(JSON.parse(stored))
+      } catch (err) {
+        console.error('Error loading escalated issues:', err)
+      }
     }
-  }, [navigate])
+  }, [])
 
   useEffect(() => {
     if (selectedWorkOrderId) {
@@ -265,6 +270,30 @@ function HomePage() {
     }
   }
 
+  const handleIssueEscalation = (issueReport, workOrderId, workOrderTitle) => {
+    if (issueReport.escalateToEngineer) {
+      const escalatedIssue = {
+        id: Date.now(),
+        ...issueReport,
+        workOrderId,
+        workOrderTitle,
+        technicianName: user?.name || 'Technician',
+        escalated: true,
+      }
+      const updated = [...escalatedIssues, escalatedIssue]
+      setEscalatedIssues(updated)
+      localStorage.setItem('escalated_issues', JSON.stringify(updated))
+      addToast('Issue escalated to engineer', 'info', 'Engineers have been notified')
+    }
+  }
+
+  const handleResolveEscalatedIssue = (issue) => {
+    const updated = escalatedIssues.filter(i => i.id !== issue.id)
+    setEscalatedIssues(updated)
+    localStorage.setItem('escalated_issues', JSON.stringify(updated))
+    addToast('Escalated issue resolved', 'success', 'Issue has been marked as resolved')
+  }
+
   return (
     <div className="min-h-screen bg-bg-secondary">
       <TopBar 
@@ -283,6 +312,14 @@ function HomePage() {
           }
           rightPane={
             <div className="h-full overflow-y-auto p-6 space-y-6">
+              {/* Escalated Issues Section (Engineers Only) */}
+              {isEngineer() && (
+                <EscalatedIssues
+                  escalatedIssues={escalatedIssues}
+                  onResolve={handleResolveEscalatedIssue}
+                />
+              )}
+
               {selectedWorkOrder ? (
                 <>
                   {/* Location Guidance */}
@@ -305,6 +342,7 @@ function HomePage() {
                     onLogsClick={() => setLogsDrawerOpen(true)}
                     onRunPlan={handleRunPlan}
                     onAssignClick={() => setAssignmentModalOpen(true)}
+                    onIssueEscalate={(issueReport) => handleIssueEscalation(issueReport, selectedWorkOrderId, selectedWorkOrder?.title)}
                   />
 
                   {/* Agent Reasoning Feed */}
