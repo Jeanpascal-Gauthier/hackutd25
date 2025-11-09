@@ -42,9 +42,9 @@ function LogsDrawer({ isOpen, onClose, logs }) {
               {logs.length === 0 ? (
                 <p className="text-sm text-text-tertiary text-center py-8">No logs available</p>
               ) : (
-                logs.map((log, index) => (
+                logs.toReversed().map((log, index) => (
                   <motion.div
-                    key={index}
+                    key={log.id || log.timestamp || index}
                     initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 20 }}
                     animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05, duration: 0.15 }}
@@ -74,11 +74,21 @@ function LogsDrawer({ isOpen, onClose, logs }) {
                         log.type === 'success' ? 'text-success-500 dark:text-success-400' :
                         'text-text-primary dark:text-text-primary'
                       }`}>
-                        {log.message || log}
+                        {log.message || log.agent_action || log}
                       </p>
+                      {log.result && (
+                        <p className="text-xs text-text-secondary dark:text-text-secondary mt-1 italic">
+                          {log.result}
+                        </p>
+                      )}
+                      {log.step_number && (
+                        <p className="text-xs text-text-tertiary dark:text-text-tertiary mt-1">
+                          Step {log.step_number}
+                        </p>
+                      )}
                       {log.timestamp && (
                         <p className="text-xs text-text-tertiary dark:text-text-tertiary mt-1">
-                          {new Date(log.timestamp).toLocaleTimeString()}
+                          {new Date(log.timestamp).toLocaleString()}
                         </p>
                       )}
                     </div>

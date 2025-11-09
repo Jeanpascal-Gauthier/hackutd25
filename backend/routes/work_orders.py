@@ -78,6 +78,12 @@ def get_workorders():
                 wo.status = status
                 wo.updated_at = datetime.now(timezone.utc)
                 wo.save()
+                # Reload to get the updated timestamp
+                wo.reload()
+        
+        # Get timestamps for sorting
+        updated_at = wo.updated_at if wo.updated_at else wo.created_at
+        created_at = wo.created_at
         
         results.append({
             "id": str(wo.id),
@@ -87,9 +93,17 @@ def get_workorders():
             "status": status,
             "estimated_expertise_level": wo.estimated_expertise_level,
             "category": wo.category,
-            "created_at": format_datetime(wo.created_at),
-            "updated_at": format_datetime(wo.updated_at) or format_datetime(wo.created_at)
+            "created_at": format_datetime(created_at),
+            "updated_at": format_datetime(updated_at) or format_datetime(created_at),
+            "_sort_key": updated_at if updated_at else created_at,  # Internal sorting key
         })
+    
+    # Sort results by _sort_key descending (newest first)
+    # Remove _sort_key before returning
+    results.sort(key=lambda x: x['_sort_key'] if x['_sort_key'] else datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+    for result in results:
+        result.pop('_sort_key', None)
+    
     return jsonify(results)
 
 # Report Issue and Regenerate Steps

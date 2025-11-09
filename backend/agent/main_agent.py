@@ -192,18 +192,44 @@ You are a data center expert AI assistant. Do not overcomplicate things, but pro
 Title: {state['work_order_title']}
 Description: {state['work_order_description']}
 
+Available tools (You are not able to use these tools directly, but try to generate steps that may be solvable via an orchestration of these tools, your best guess.):
+- create_log
+- shutdown_server
+- reboot_server
+- check_existing_specs
+- check_inventory
+- check_temperature
+- deploy_update
+- escalate_to_higher_engineer
+- order_supplies
+- run_diagnostics
+
+IMPORTANT: Break down the work order into steps that separate automated tasks from tasks requiring human intervention.
+
+STEP STRUCTURE GUIDELINES:
+1. Separate automated tasks (checking, diagnostics, data retrieval, remote operations) from physical tasks (replacement, installation, inspection, manual configuration)
+2. When possible, put automated steps BEFORE human intervention steps
+3. Each step should be clearly either automatable or require physical/human work
+4. Isolate human intervention to the minimum number of steps necessary
+
+Examples:
+- "Check and update Server X08's specifications" → Step 1: "Check current specifications for Server X08" (automatable), Step 2: "Update server specifications in system" (requires human/technician)
+- "Replace failed GPU in Server A12" → Step 1: "Run diagnostics on Server A12 to confirm GPU failure" (automatable), Step 2: "Check inventory for compatible GPU replacement" (automatable), Step 3: "Physically replace GPU card in Server A12" (requires technician)
+- "Reboot server and verify status" → Step 1: "Reboot Server X05" (automatable), Step 2: "Verify server is online and responding" (automatable)
+
 1. Decide the priority (low, medium, high)
 2. Decide the category (reboot, hardware, network, other)
 3. Decide estimated technician expertise (junior, mid, senior)
 4. Generate a step-by-step workflow plan. For each step:
    - description, a concise one or two sentence description of how to execute the step.
    - step_number, a whole number representing the order of the step
+   - Structure steps to maximize automation and minimize human intervention
 
 Return a JSON object with:
 - priority
 - category
 - estimated_expertise_level
-- steps: list of steps
+- steps: list of steps (each with step_number and description)
 
 DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BLOCKS IN MARKDOWN.
 """
