@@ -185,3 +185,66 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
             current_plan_step.executed_at = datetime.utcnow()
 
         current_plan_step.save()
+
+def regenerate_steps_from_issue(work_order, issue_description, from_step_number, completed_steps):
+    """
+    Regenerate PlanSteps from a specific step onwards, taking into account an issue description.
+    
+    Args:
+        work_order: WorkOrder instance
+        issue_description: Description of the issue encountered
+        from_step_number: The step number to regenerate from (inclusive)
+        completed_steps: List of completed steps before the issue (for context)
+    
+    Returns:
+        List of new step dictionaries with step_number and description
+    """
+    # Build context of completed steps
+    completed_steps_context = ""
+    if completed_steps:
+        completed_steps_context = "\n\nCompleted steps so far:\n"
+        for step in completed_steps:
+            completed_steps_context += f"  Step {step.step_number}: {step.description}\n"
+            if step.result:
+                completed_steps_context += f"    Result: {step.result}\n"
+    
+    prompt = f"""
+You are a data center expert AI assistant. A technician encountered an issue while executing a work order and needs you to regenerate the remaining steps.
+
+Work Order:
+Title: {work_order.title}
+Description: {work_order.description}
+Priority: {work_order.priority}
+Category: {work_order.category}
+Estimated Expertise Level: {work_order.estimated_expertise_level}
+{completed_steps_context}
+
+Issue Encountered:
+The technician encountered an issue at step {from_step_number}. The issue description is:
+{issue_description}
+
+Your task:
+1. Analyze the issue and understand what went wrong
+2. Generate a new set of steps starting from step {from_step_number} that:
+   - Addresses the issue that was encountered
+   - Provides an alternative approach or solution
+   - Continues the work order to completion
+   - Takes into account what was already completed (the completed steps above)
+
+For each new step:
+   - description: A concise one or two sentence description of how to execute the step
+   - step_number: A whole number starting from {from_step_number}
+
+Return a JSON object with:
+- steps: list of steps (each with step_number and description)
+
+DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BLOCKS IN MARKDOWN.
+"""
+
+    result = llm.chat.completions.create(
+        model="nvidia/nvidia-nemotron-nano-9b-v2",
+        messages=[{"role": "system", "content": prompt}]
+    )
+
+    data = json.loads(result.choices[0].message.content)
+    return data['steps']
