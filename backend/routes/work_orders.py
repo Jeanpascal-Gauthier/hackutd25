@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 from mongoengine import DoesNotExist
 from models.WorkOrder import WorkOrder
 from models.PlanStep import PlanStep
-from datetime import datetime
+from datetime import datetime, timezone
 from agent.main_agent import Context, run_agent, run_agent_from_step, regenerate_steps_from_issue, execute_steps_automatically
 
 work_orders_bp = Blueprint('work_orders', __name__, url_prefix='/api/work_orders')
@@ -40,6 +40,15 @@ def create_workorder():
     run_agent(context)
     return jsonify({"message": "Work order created and agent started processing"}), 201
 
+# Helper function to ensure datetime has timezone info
+def format_datetime(dt):
+    if not dt:
+        return None
+    # If datetime is naive (no timezone), assume it's UTC and make it timezone-aware
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
+
 # Get All WorkOrders
 @work_orders_bp.route('/', methods=['GET'])
 def get_workorders():
@@ -67,7 +76,7 @@ def get_workorders():
             # Update work order status if it changed
             if wo.status != status:
                 wo.status = status
-                wo.updated_at = datetime.utcnow()
+                wo.updated_at = datetime.now(timezone.utc)
                 wo.save()
         
         results.append({
@@ -78,8 +87,8 @@ def get_workorders():
             "status": status,
             "estimated_expertise_level": wo.estimated_expertise_level,
             "category": wo.category,
-            "created_at": wo.created_at.isoformat() if wo.created_at else None,
-            "updated_at": wo.updated_at.isoformat() if wo.updated_at else (wo.created_at.isoformat() if wo.created_at else None)
+            "created_at": format_datetime(wo.created_at),
+            "updated_at": format_datetime(wo.updated_at) or format_datetime(wo.created_at)
         })
     return jsonify(results)
 
@@ -156,7 +165,7 @@ def report_issue():
         )
         
         # Update work order status if needed
-        work_order.updated_at = datetime.utcnow()
+        work_order.updated_at = datetime.now(timezone.utc)
         if work_order.status == "completed":
             work_order.status = "in_progress"
         work_order.save()
@@ -195,8 +204,8 @@ def get_workorder(workorder_id):
             "status": wo.status,
             "estimated_expertise_level": wo.estimated_expertise_level,
             "category": wo.category,
-            "created_at": wo.created_at.isoformat() if wo.created_at else None,
-            "updated_at": wo.updated_at.isoformat() if wo.updated_at else None
+            "created_at": format_datetime(wo.created_at),
+            "updated_at": format_datetime(wo.updated_at)
         })
     except DoesNotExist:
         return jsonify({"error": "WorkOrder not found"}), 404
@@ -216,7 +225,7 @@ def get_workorder_steps(workorder_id):
                 "executor": step.executor,
                 "status": step.status,
                 "result": step.result,
-                "executed_at": step.executed_at.isoformat() if step.executed_at else None
+                "executed_at": format_datetime(step.executed_at)
             })
         return jsonify(results)
     except DoesNotExist:
@@ -235,7 +244,7 @@ def update_workorder(workorder_id):
             estimated_expertise_level=data.get("estimated_expertise_level", wo.estimated_expertise_level),
             category=data.get("category", wo.category),
             status=data.get("status", wo.status),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.now(timezone.utc)
         )
         return jsonify({"message": "WorkOrder updated"})
     except DoesNotExist:

@@ -136,9 +136,11 @@ function Timeline({ steps = [], workOrderId, onConfirmStep, onReportIssue, loadi
                       <span className={`text-xs px-2 py-0.5 rounded ${
                         step.executor === 'agent' 
                           ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                          : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                          : step.executor === 'technician'
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                          : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
                       }`}>
-                        {step.executor === 'agent' ? 'Agent' : 'Technician'}
+                        {step.executor === 'agent' ? 'Agent' : step.executor === 'technician' ? 'Technician' : 'Unassigned'}
                       </span>
                     )}
                     {step.status && (

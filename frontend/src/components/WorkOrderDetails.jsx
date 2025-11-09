@@ -262,12 +262,23 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onAssignClick, onIssueEsca
     try {
       const created = new Date(workOrder.created_at)
       const now = new Date()
-      const diffMs = now - created
+      
+      // Check if date is valid
+      if (isNaN(created.getTime())) {
+        return 'N/A'
+      }
+      
+      const diffMs = now.getTime() - created.getTime()
+      
+      // Handle negative time (shouldn't happen, but handle gracefully)
+      if (diffMs < 0) {
+        return 'Just created'
+      }
+      
       const hours = Math.floor(diffMs / (1000 * 60 * 60))
       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
       
-      // Handle negative time (timezone issues)
-      if (hours < 0) {
+      if (hours === 0 && minutes === 0) {
         return 'Just created'
       }
       
@@ -277,6 +288,7 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onAssignClick, onIssueEsca
       
       return `${hours}h ${minutes}m`
     } catch (e) {
+      console.error('Error formatting SLA:', e, workOrder?.created_at)
       return 'N/A'
     }
   }
