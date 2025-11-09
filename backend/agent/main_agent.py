@@ -41,41 +41,35 @@ llm = OpenAI(
 
 agent_model = ChatNVIDIA(
     base_url="https://integrate.api.nvidia.com/v1",
-    model="nvidia/llama-3.3-nemotron-super-49b-v1",
-    temperature=0.2,
+    model="nvidia/nvidia-nemotron-nano-9b-v2",
+    temperature=0.0,
     api_key=os.getenv("NVIDIA_API_KEY")
 )
 
-agent_prompt = f"""
-You are a Data Center AI Assistant. Your job is to execute tasks using available tools when possible.
+agent_prompt = """
+You are a Data Center AI Assistant responsible for executing maintenance tasks.
 
-IMPORTANT: If a step can be completed using ANY of the available tools below, you MUST use the tool. Only mark as "technician" if the step requires physical work that cannot be done with tools.
+Your role:
+- Execute tasks using your available tools whenever possible
+- When you can complete a task with your tools, DO IT immediately - don't just describe what you would do
+- Only defer to a technician when the task requires physical work or capabilities you don't have
 
-Available tools (USE THESE WHENEVER POSSIBLE):
-1. reboot_server(server_id) - Reboot a specific server
-2. run_diagnostics(server_id, diagnostic_type) - Run diagnostic tests on a server
-3. check_inventory(item_name, location) - Check inventory for items
-4. update_inventory(item_name, quantity_change, location) - Update inventory quantities
-5. check_existing_specs(server_id, component_type) - Check server/component specifications
-6. check_temperature(rack_id, unit_id) - Check temperature of a rack or unit
-7. deploy_update(machine_group, update_type) - Deploy software/firmware updates
-8. order_supplies(item_name, quantity, urgency, supplier) - Order supplies
-9. escalate_to_higher_engineer(work_order_id, reason, escalation_level) - Escalate issues
+This is a demo environment - be proactive with tool usage.
 
-Decision process:
-1. Read the current step description carefully
-2. Determine if ANY tool can help complete this step
-3. If YES → USE THE TOOL (agent will automatically execute)
-4. If NO → Return JSON: {{"executor": "technician"}}
+Examples of what you CAN do:
+- "Reboot server A45" → Use reboot_server tool with server_id="A45"
+- "Check temperature readings" → Use check_temperature tool
+- "Run diagnostics on server B12" → Use run_diagnostics tool with server_id="B12"
 
-Examples:
-- "Reboot server A12" → Use reboot_server tool
-- "Check if GPU is in stock" → Use check_inventory tool
-- "Run diagnostics" → Use run_diagnostics tool
-- "Replace physical GPU card" → Return {{"executor": "technician"}} (requires physical work)
-- "Check temperature" → Use check_temperature tool
+Examples of what requires a TECHNICIAN:
+- "Replace the failed hard drive in rack 3"
+- "Physically inspect the server for damage"
+- "Install new RAM modules"
 
-When using tools, extract parameters from the step description (server IDs, item names, etc.).
+If you cannot complete a task with your available tools, respond ONLY with:
+{"executor": "technician", "reason": "explanation of why physical access or unavailable capability is needed"}
+
+Otherwise, execute the task using your tools.
 """
 
 
@@ -83,7 +77,7 @@ When using tools, extract parameters from the step description (server IDs, item
 agent = create_agent(
     model=agent_model,
     tools=[tools.reboot_server, tools.check_existing_specs, tools.check_inventory, tools.check_temperature, tools.deploy_update, tools.escalate_to_higher_engineer, tools.order_supplies, tools.run_diagnostics],
-    system_prompt="You are a Data Center AI assistant responsible for coordinating maintenance operations."
+    system_prompt=agent_prompt
 )
 
 def run_agent_from_step(step_id: str, work_order_id: str):
@@ -105,82 +99,21 @@ def run_agent_from_step(step_id: str, work_order_id: str):
         step.status = "in_progress"
         step.save()
 
-        msg = {
-            "role": "user",
-            "content": f"""
-{agent_prompt}
-
-Work Order Title: {work_order.title}
-Work Order Description: {work_order.description}
-Priority: {work_order.priority}
-Category: {work_order.category}
-Estimated Expertise Level: {work_order.estimated_expertise_level}
-
-Current Step:
-- Order: {step.step_number}
-- Description: {step.description}
-
-All Steps:
-{chr(10).join(all_steps)}
-"""
-        }
+        msg = build_message(work_order, step, all_steps)
 
         result = agent.invoke({"messages": [msg]})
-        messages = result.get("messages", [])
-        latest_message = messages[-1] if messages else None
-        
-        # Check if agent used any tools (tool calls indicate agent execution)
-        tool_used = False
-        executor = "technician"
-        
-        # Look through all messages for tool calls
-        for msg_item in messages:
-            # Check if this is a ToolMessage (result from tool execution)
-            if isinstance(msg_item, ToolMessage):
-                tool_used = True
-                executor = "agent"
-                break
-            # Check for tool_calls attribute (AIMessage with tool calls)
-            if isinstance(msg_item, AIMessage) and hasattr(msg_item, 'tool_calls') and msg_item.tool_calls:
-                tool_used = True
-                executor = "agent"
-                break
-            # Also check for tool call IDs
-            if hasattr(msg_item, 'tool_call_id') and msg_item.tool_call_id:
-                tool_used = True
-                executor = "agent"
-                break
-            # Check message type string
-            if hasattr(msg_item, 'type') and msg_item.type == 'tool':
-                tool_used = True
-                executor = "agent"
-                break
-        
-        # If no tool was used, try to parse JSON response
-        if not tool_used and latest_message:
-            try:
-                content = latest_message.content
-                if content and isinstance(content, str):
-                    # Try to extract JSON from content (might be wrapped in markdown)
-                    content_clean = content.strip()
-                    if content_clean.startswith('```'):
-                        # Remove markdown code blocks
-                        content_clean = content_clean.split('```')[1]
-                        if content_clean.startswith('json'):
-                            content_clean = content_clean[4:]
-                        content_clean = content_clean.strip()
-                    if content_clean.startswith('{'):
-                        data = json.loads(content_clean)
-                        executor = data.get("executor", "technician")
-            except (json.JSONDecodeError, AttributeError, KeyError) as e:
-                # If JSON parsing fails, default to technician
-                print(f"Warning: Could not parse agent response as JSON: {e}")
-                executor = "technician"
-        
+        latest_message = result["messages"][-1]
+        data = {}
+        executor = 'technician'
+        try:
+            data = json.loads(latest_message.content)
+        except:
+            executor = 'agent'
+        print("CONTENT IN RUN AGENT FROM STEP: ", data)
+        print("EXECUTOR: ", executor)
         step.executor = executor
         step.save()
-        
-        if executor != 'agent':
+        if step.executor != 'agent':
             break
         else:
             step.status = "success"
@@ -213,82 +146,22 @@ def execute_steps_automatically(work_order, plan_steps, start_from_step_number=N
         step.status = "in_progress"
         step.save()
 
-        msg = {
-            "role": "user",
-            "content": f"""
-{agent_prompt}
-
-Work Order Title: {work_order.title}
-Work Order Description: {work_order.description}
-Priority: {work_order.priority}
-Category: {work_order.category}
-Estimated Expertise Level: {work_order.estimated_expertise_level}
-
-Current Step:
-- Order: {step.step_number}
-- Description: {step.description}
-
-All Steps:
-{chr(10).join(all_steps_str)}
-"""
-        }
+        msg = build_message(work_order, step, all_steps)
 
         result = agent.invoke({"messages": [msg]})
-        messages = result.get("messages", [])
-        latest_message = messages[-1] if messages else None
-        
-        # Check if agent used any tools (tool calls indicate agent execution)
-        tool_used = False
-        executor = "technician"
-        
-        # Look through all messages for tool calls
-        for msg_item in messages:
-            # Check if this is a ToolMessage (result from tool execution)
-            if isinstance(msg_item, ToolMessage):
-                tool_used = True
-                executor = "agent"
-                break
-            # Check for tool_calls attribute (AIMessage with tool calls)
-            if isinstance(msg_item, AIMessage) and hasattr(msg_item, 'tool_calls') and msg_item.tool_calls:
-                tool_used = True
-                executor = "agent"
-                break
-            # Also check for tool call IDs
-            if hasattr(msg_item, 'tool_call_id') and msg_item.tool_call_id:
-                tool_used = True
-                executor = "agent"
-                break
-            # Check message type string
-            if hasattr(msg_item, 'type') and msg_item.type == 'tool':
-                tool_used = True
-                executor = "agent"
-                break
-        
-        # If no tool was used, try to parse JSON response
-        if not tool_used and latest_message:
-            try:
-                content = latest_message.content
-                if content and isinstance(content, str):
-                    # Try to extract JSON from content (might be wrapped in markdown)
-                    content_clean = content.strip()
-                    if content_clean.startswith('```'):
-                        # Remove markdown code blocks
-                        content_clean = content_clean.split('```')[1]
-                        if content_clean.startswith('json'):
-                            content_clean = content_clean[4:]
-                        content_clean = content_clean.strip()
-                    if content_clean.startswith('{'):
-                        data = json.loads(content_clean)
-                        executor = data.get("executor", "technician")
-            except (json.JSONDecodeError, AttributeError, KeyError) as e:
-                # If JSON parsing fails, default to technician
-                print(f"Warning: Could not parse agent response as JSON: {e}")
-                executor = "technician"
-        
+        latest_message = result["messages"][-1]
+        data = {}
+        executor = 'technician'
+        try:
+            data = json.loads(latest_message.content)
+        except:
+            executor = 'agent'
+        print("CONTENT IN EXECUTE STEPS AUTOMATICALLY: ", data)
+        print("EXECUTOR: ", executor)
         step.executor = executor
         step.save()
         
-        if executor != 'agent':
+        if step.executor != 'agent':
             # This step requires technician - keep it as in_progress
             return step
         else:
@@ -365,81 +238,26 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
         current_plan_step = plan_steps[step['step_number']-1]
         current_plan_step.status = "in_progress"
         current_plan_step.save()
-        msg = {"role": "user", "content": f"""
-    {agent_prompt}
-
-    Work Order Title: {state['work_order_title']}
-    Work Order Description: {state['work_order_description']}
-    Priority: {data['priority']}
-    Category: {data['category']}
-    Estimated Expertise Level: {data['estimated_expertise_level']}
-    Current Step:
-        - Order: {step['step_number']}
-        - Description: {step['description']}
-
-    All Steps:
-        {chr(10).join(all_steps)}
-    """}
+        msg = build_message(work_order, step, all_steps)
+        
         result = agent.invoke({
             "messages": [msg]
         })
         
-        messages = result.get("messages", [])
-        latest_message = messages[-1] if messages else None
-        
-        # Check if agent used any tools (tool calls indicate agent execution)
-        tool_used = False
-        executor = "technician"
-        
-        # Look through all messages for tool calls
-        for msg_item in messages:
-            # Check if this is a ToolMessage (result from tool execution)
-            if isinstance(msg_item, ToolMessage):
-                tool_used = True
-                executor = "agent"
-                break
-            # Check for tool_calls attribute (AIMessage with tool calls)
-            if isinstance(msg_item, AIMessage) and hasattr(msg_item, 'tool_calls') and msg_item.tool_calls:
-                tool_used = True
-                executor = "agent"
-                break
-            # Also check for tool call IDs
-            if hasattr(msg_item, 'tool_call_id') and msg_item.tool_call_id:
-                tool_used = True
-                executor = "agent"
-                break
-            # Check message type string
-            if hasattr(msg_item, 'type') and msg_item.type == 'tool':
-                tool_used = True
-                executor = "agent"
-                break
-        
-        # If no tool was used, try to parse JSON response
-        if not tool_used and latest_message:
-            try:
-                content = latest_message.content
-                if content and isinstance(content, str):
-                    # Try to extract JSON from content (might be wrapped in markdown)
-                    content_clean = content.strip()
-                    if content_clean.startswith('```'):
-                        # Remove markdown code blocks
-                        content_clean = content_clean.split('```')[1]
-                        if content_clean.startswith('json'):
-                            content_clean = content_clean[4:]
-                        content_clean = content_clean.strip()
-                    if content_clean.startswith('{'):
-                        data = json.loads(content_clean)
-                        executor = data.get("executor", "technician")
-            except (json.JSONDecodeError, AttributeError, KeyError) as e:
-                # If JSON parsing fails, default to technician
-                print(f"Warning: Could not parse agent response as JSON: {e}")
-                executor = "technician"
-        
-        print(f"Step {current_plan_step.step_number}: Executor = {executor}, Tool used = {tool_used}")
+        # print(mapped)
+        # print(result)
+        most_recent_msg = result['messages'][-1]
+
+        content = {}
+        executor = 'technician'
+        try:
+            content = json.loads(most_recent_msg.content)
+        except:
+            executor = 'agent'
+        print("CONTENT: ", content)
         current_plan_step.executor = executor
         current_plan_step.save()
-        
-        if executor != 'agent':
+        if current_plan_step.executor != 'agent':
             break
         else:
             current_plan_step.status = "success"
@@ -508,3 +326,24 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
 
     data = json.loads(result.choices[0].message.content)
     return data['steps']
+
+def build_message(work_order, step, all_steps):
+    msg = {
+            "role": "user",
+            "content": f"""
+Work Order Title: {work_order.title}
+Work Order Description: {work_order.description}
+Priority: {work_order.priority}
+Category: {work_order.category}
+Estimated Expertise Level: {work_order.estimated_expertise_level}
+
+Current Step:
+- Order: {step['step_number']}
+- Description: {step['description']}
+
+If you can complete this task using your available tools, do so now.
+If this task requires a human technician (physical work, complex judgment, etc), respond with:
+{{"executor": "technician", "reason": "explanation"}}
+"""
+    }
+    return msg
