@@ -197,32 +197,68 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
         throw new Error('Step not found')
       }
 
-      const response = await fetch('/api/work_orders/issue', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          step_id: step.id,
-          work_order_id: workOrderId,
-          issue_description: issueReport.description,
-        }),
-      })
+      let response
+      
+      if (issueReport.escalateToEngineer) {
+        // Send to escalation endpoint
+        const escalationMessage = `Issue with Step ${step.step_number || issueReport.stepIndex + 1}: ${issueReport.description}`
+        
+        response = await fetch('/api/escalations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            work_order_id: workOrderId,
+            message: escalationMessage,
+            source: 'technician',
+          }),
+        })
 
-      if (response.ok) {
-        const result = await response.json()
-        // Close the modal first
-        setIssueFormOpen(false)
-        setSelectedStepIndex(null)
-        // Refresh steps after regeneration
-        await fetchWorkOrderDetails()
-        // Add log entry
-        if (onLogsClick) {
-          // This will be handled by parent component
+        if (response.ok) {
+          const result = await response.json()
+          // Close the modal first
+          setIssueFormOpen(false)
+          setSelectedStepIndex(null)
+          // Refresh work order details to show updated status
+          await fetchWorkOrderDetails()
+          // Notify parent component if callback exists
+          if (onIssueEscalate) {
+            onIssueEscalate(issueReport, workOrderId, workOrder?.title)
+          }
+        } else {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to escalate issue')
         }
       } else {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to report issue')
+        // Send to AI regeneration endpoint
+        response = await fetch('/api/work_orders/issue', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            step_id: step.id,
+            work_order_id: workOrderId,
+            issue_description: issueReport.description,
+          }),
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          // Close the modal first
+          setIssueFormOpen(false)
+          setSelectedStepIndex(null)
+          // Refresh steps after regeneration
+          await fetchWorkOrderDetails()
+          // Add log entry
+          if (onLogsClick) {
+            // This will be handled by parent component
+          }
+        } else {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to report issue')
+        }
       }
     } catch (err) {
       console.error('Error submitting issue report:', err)

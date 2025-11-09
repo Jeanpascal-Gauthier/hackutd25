@@ -33,16 +33,56 @@ function HomePage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Load escalated issues from localStorage (in real app, fetch from API)
-    const stored = localStorage.getItem('escalated_issues')
-    if (stored) {
+    // Fetch escalated issues from API
+    const fetchEscalatedIssues = async () => {
       try {
-        setEscalatedIssues(JSON.parse(stored))
+        // Get all work orders with escalated status
+        const workOrdersResponse = await fetch('/api/work_orders')
+        if (workOrdersResponse.ok) {
+          const workOrders = await workOrdersResponse.json()
+          const escalatedWorkOrderIds = workOrders
+            .filter(wo => wo.status === 'escalated')
+            .map(wo => wo.id)
+          
+          // Fetch escalations for each escalated work order
+          const allEscalations = []
+          for (const workOrderId of escalatedWorkOrderIds) {
+            try {
+              const escalationsResponse = await fetch(`/api/escalations/work_order/${workOrderId}`)
+              if (escalationsResponse.ok) {
+                const data = await escalationsResponse.json()
+                const workOrder = workOrders.find(wo => wo.id === workOrderId)
+                // Transform API escalations to match component format
+                data.escalations.forEach(escalation => {
+                  allEscalations.push({
+                    id: escalation.id,
+                    workOrderId: workOrderId,
+                    workOrderTitle: workOrder?.title || 'Unknown',
+                    description: escalation.message,
+                    timestamp: escalation.timestamp,
+                    source: escalation.source,
+                    status: escalation.status,
+                  })
+                })
+              }
+            } catch (err) {
+              console.error(`Error fetching escalations for work order ${workOrderId}:`, err)
+            }
+          }
+          setEscalatedIssues(allEscalations)
+        }
       } catch (err) {
         console.error('Error loading escalated issues:', err)
       }
     }
-  }, [])
+    
+    if (isEngineer()) {
+      fetchEscalatedIssues()
+      // Refresh escalated issues every 30 seconds
+      const interval = setInterval(fetchEscalatedIssues, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [isEngineer])
 
   useEffect(() => {
     if (selectedWorkOrderId) {
@@ -274,28 +314,70 @@ function HomePage() {
     }
   }
 
-  const handleIssueEscalation = (issueReport, workOrderId, workOrderTitle) => {
-    if (issueReport.escalateToEngineer) {
-      const escalatedIssue = {
-        id: Date.now(),
-        ...issueReport,
-        workOrderId,
-        workOrderTitle,
-        technicianName: user?.name || 'Technician',
-        escalated: true,
+  const handleIssueEscalation = async (issueReport, workOrderId, workOrderTitle) => {
+    // The escalation is already handled in WorkOrderDetails
+    // This callback is just for notifications
+    addToast('Issue escalated to engineer', 'info', 'Engineers have been notified')
+    // Refresh escalated issues list
+    const workOrdersResponse = await fetch('/api/work_orders')
+    if (workOrdersResponse.ok) {
+      const workOrders = await workOrdersResponse.json()
+      const escalatedWorkOrderIds = workOrders
+        .filter(wo => wo.status === 'escalated')
+        .map(wo => wo.id)
+      
+      const allEscalations = []
+      for (const woId of escalatedWorkOrderIds) {
+        try {
+          const escalationsResponse = await fetch(`/api/escalations/work_order/${woId}`)
+          if (escalationsResponse.ok) {
+            const data = await escalationsResponse.json()
+            const workOrder = workOrders.find(wo => wo.id === woId)
+            data.escalations.forEach(escalation => {
+              allEscalations.push({
+                id: escalation.id,
+                workOrderId: woId,
+                workOrderTitle: workOrder?.title || 'Unknown',
+                description: escalation.message,
+                timestamp: escalation.timestamp,
+                source: escalation.source,
+                status: escalation.status,
+              })
+            })
+          }
+        } catch (err) {
+          console.error(`Error fetching escalations:`, err)
+        }
       }
-      const updated = [...escalatedIssues, escalatedIssue]
-      setEscalatedIssues(updated)
-      localStorage.setItem('escalated_issues', JSON.stringify(updated))
-      addToast('Issue escalated to engineer', 'info', 'Engineers have been notified')
+      setEscalatedIssues(allEscalations)
     }
   }
 
-  const handleResolveEscalatedIssue = (issue) => {
-    const updated = escalatedIssues.filter(i => i.id !== issue.id)
-    setEscalatedIssues(updated)
-    localStorage.setItem('escalated_issues', JSON.stringify(updated))
-    addToast('Escalated issue resolved', 'success', 'Issue has been marked as resolved')
+  const handleResolveEscalatedIssue = async (issue) => {
+    try {
+      // Update escalation status to resolved
+      const response = await fetch(`/api/escalations/${issue.id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'resolved',
+        }),
+      })
+
+      if (response.ok) {
+        // Remove from local state
+        const updated = escalatedIssues.filter(i => i.id !== issue.id)
+        setEscalatedIssues(updated)
+        addToast('Escalated issue resolved', 'success', 'Issue has been marked as resolved')
+      } else {
+        throw new Error('Failed to resolve escalation')
+      }
+    } catch (err) {
+      console.error('Error resolving escalated issue:', err)
+      addToast('Failed to resolve issue', 'error', err.message)
+    }
   }
 
   return (

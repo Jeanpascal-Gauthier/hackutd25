@@ -8,10 +8,7 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit, isSu
   const { isTechnician } = useAuth()
   const [formData, setFormData] = useState({
     description: '',
-    // reason: '',  // Commented out - not needed for now
-    // additionalNotes: '',  // Commented out - not needed for now
-    // urgency: 'medium',  // Commented out - not needed for now
-    // escalateToEngineer: false,  // Commented out - not needed for now
+    escalateToEngineer: false,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -42,10 +39,10 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit, isSu
   )
 
   const handleChange = (e) => {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }))
   }
 
@@ -72,10 +69,7 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit, isSu
   const handleClose = () => {
     setFormData({
       description: '',
-      // reason: '',  // Commented out
-      // additionalNotes: '',  // Commented out
-      // urgency: 'medium',  // Commented out
-      // escalateToEngineer: false,  // Commented out
+      escalateToEngineer: false,
     })
     onClose()
   }
@@ -137,38 +131,59 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit, isSu
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
-            <div className="space-y-6">
-              {/* Description */}
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-text-primary mb-2">
-                  Issue Description <span className="text-danger-500">*</span>
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  rows={6}
-                  placeholder="Describe the issue in detail. What happened? What prevented you from completing this step? The AI will regenerate steps from this point onwards based on your description."
-                  className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                <p className="text-xs text-text-tertiary mt-2">
-                  The AI will analyze this issue and regenerate the remaining steps to address it.
-                </p>
-              </div>
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                {/* Description */}
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-text-primary mb-2">
+                    Issue Description <span className="text-danger-500">*</span>
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    required
+                    disabled={isLoading}
+                    rows={6}
+                    placeholder="Describe the issue in detail. What happened? What prevented you from completing this step? The AI will regenerate steps from this point onwards based on your description."
+                    className="w-full px-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <p className="text-xs text-text-tertiary mt-2">
+                    The AI will analyze this issue and regenerate the remaining steps to address it.
+                  </p>
+                </div>
 
-              {/* Commented out fields - not needed for now */}
-              {/* Reason Selection - Commented out */}
-              {/* Urgency Level - Commented out */}
-              {/* Additional Notes - Commented out */}
-              {/* Escalation Option - Commented out */}
+                {/* Escalation Option */}
+                <div className="flex items-start">
+                  <div className="flex items-center h-5">
+                    <input
+                      id="escalateToEngineer"
+                      name="escalateToEngineer"
+                      type="checkbox"
+                      checked={formData.escalateToEngineer}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      className="w-4 h-4 text-brand-500 bg-bg-secondary border-border rounded focus:ring-brand-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <div className="ml-3 text-sm">
+                    <label htmlFor="escalateToEngineer" className="font-medium text-text-primary">
+                      Escalate to Engineer
+                    </label>
+                    <p className="text-xs text-text-secondary mt-1">
+                      {formData.escalateToEngineer 
+                        ? 'This issue will be sent to engineers for review instead of being handled by the AI.'
+                        : 'Check this box to send this issue directly to engineers instead of regenerating steps with AI.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-border">
+            {/* Actions - Fixed at bottom */}
+            <div className="flex items-center justify-end space-x-3 p-6 pt-4 border-t border-border bg-bg-elevated">
               <button
                 type="button"
                 onClick={handleClose}
@@ -180,15 +195,15 @@ function IssueReportForm({ isOpen, onClose, stepTitle, stepIndex, onSubmit, isSu
               <button
                 type="submit"
                 disabled={isLoading || !formData.description}
-                className="px-4 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
               >
                 {isLoading ? (
                   <>
                     <LoadingSpinner size="w-4 h-4" />
-                    <span>Regenerating Steps...</span>
+                    <span>{formData.escalateToEngineer ? 'Posting to Engineers...' : 'Regenerating Steps...'}</span>
                   </>
                 ) : (
-                  'Submit Report'
+                  'Post'
                 )}
               </button>
             </div>
