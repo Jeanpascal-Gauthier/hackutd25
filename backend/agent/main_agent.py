@@ -6,7 +6,7 @@ import os
 import json
 from dotenv import load_dotenv
 from openai import OpenAI
-from langchain.messages import AnyMessage
+from langchain.messages import AnyMessage, AIMessage, ToolMessage
 from langchain.agents import create_agent
 from models.WorkOrder import WorkOrder
 from models.PlanStep import PlanStep
@@ -47,32 +47,35 @@ agent_model = ChatNVIDIA(
 )
 
 agent_prompt = f"""
-You are a Data Center AI Assistant. Your job is to decide who executes each task.
+You are a Data Center AI Assistant. Your job is to execute tasks using available tools when possible.
 
-Context:
-- You will receive a list of all steps (past and future) so you don't repeat actions.
-- You will also receive the current step to execute.
-- Available tools:
-  - restart_server: Restart a specific server.
-  - check_temperature: Check the temperature of a rack or unit.
-  - deploy_update: Deploy a software update to a machine group.
+IMPORTANT: If a step can be completed using ANY of the available tools below, you MUST use the tool. Only mark as "technician" if the step requires physical work that cannot be done with tools.
+
+Available tools (USE THESE WHENEVER POSSIBLE):
+1. reboot_server(server_id) - Reboot a specific server
+2. run_diagnostics(server_id, diagnostic_type) - Run diagnostic tests on a server
+3. check_inventory(item_name, location) - Check inventory for items
+4. update_inventory(item_name, quantity_change, location) - Update inventory quantities
+5. check_existing_specs(server_id, component_type) - Check server/component specifications
+6. check_temperature(rack_id, unit_id) - Check temperature of a rack or unit
+7. deploy_update(machine_group, update_type) - Deploy software/firmware updates
+8. order_supplies(item_name, quantity, urgency, supplier) - Order supplies
+9. escalate_to_higher_engineer(work_order_id, reason, escalation_level) - Escalate issues
 
 Decision process:
-1. Read the current step.
-2. If any of the tools can complete the task, set "executor" to "agent" and include the tool call.
-3. If none of the tools can perform the task, set "executor" to "technician".
-4. Return ONLY the JSON object below.
+1. Read the current step description carefully
+2. Determine if ANY tool can help complete this step
+3. If YES → USE THE TOOL (agent will automatically execute)
+4. If NO → Return JSON: {{"executor": "technician"}}
 
-Required output format:
-{{
-  "executor": "agent" | "technician"
-}}
+Examples:
+- "Reboot server A12" → Use reboot_server tool
+- "Check if GPU is in stock" → Use check_inventory tool
+- "Run diagnostics" → Use run_diagnostics tool
+- "Replace physical GPU card" → Return {{"executor": "technician"}} (requires physical work)
+- "Check temperature" → Use check_temperature tool
 
-Rules:
-- If "executor" is "agent", include a valid tool call.
-- If "executor" is "technician", include NO tool call.
-- Output only valid JSON (no markdown, no explanations, no code blocks).
-- Never include extra keys or escaped characters.
+When using tools, extract parameters from the step description (server IDs, item names, etc.).
 """
 
 
@@ -123,17 +126,66 @@ All Steps:
         }
 
         result = agent.invoke({"messages": [msg]})
-        latest_message = result["messages"][-1]
-        data = json.loads(latest_message.content)
-
-        step.executor = data["executor"]
+        messages = result.get("messages", [])
+        latest_message = messages[-1] if messages else None
+        
+        # Check if agent used any tools (tool calls indicate agent execution)
+        tool_used = False
+        executor = "technician"
+        
+        # Look through all messages for tool calls
+        for msg_item in messages:
+            # Check if this is a ToolMessage (result from tool execution)
+            if isinstance(msg_item, ToolMessage):
+                tool_used = True
+                executor = "agent"
+                break
+            # Check for tool_calls attribute (AIMessage with tool calls)
+            if isinstance(msg_item, AIMessage) and hasattr(msg_item, 'tool_calls') and msg_item.tool_calls:
+                tool_used = True
+                executor = "agent"
+                break
+            # Also check for tool call IDs
+            if hasattr(msg_item, 'tool_call_id') and msg_item.tool_call_id:
+                tool_used = True
+                executor = "agent"
+                break
+            # Check message type string
+            if hasattr(msg_item, 'type') and msg_item.type == 'tool':
+                tool_used = True
+                executor = "agent"
+                break
+        
+        # If no tool was used, try to parse JSON response
+        if not tool_used and latest_message:
+            try:
+                content = latest_message.content
+                if content and isinstance(content, str):
+                    # Try to extract JSON from content (might be wrapped in markdown)
+                    content_clean = content.strip()
+                    if content_clean.startswith('```'):
+                        # Remove markdown code blocks
+                        content_clean = content_clean.split('```')[1]
+                        if content_clean.startswith('json'):
+                            content_clean = content_clean[4:]
+                        content_clean = content_clean.strip()
+                    if content_clean.startswith('{'):
+                        data = json.loads(content_clean)
+                        executor = data.get("executor", "technician")
+            except (json.JSONDecodeError, AttributeError, KeyError) as e:
+                # If JSON parsing fails, default to technician
+                print(f"Warning: Could not parse agent response as JSON: {e}")
+                executor = "technician"
+        
+        step.executor = executor
         step.save()
-        if data['executor'] != 'agent':
+        
+        if executor != 'agent':
             break
         else:
             step.status = "success"
-
-        step.save()
+            step.executed_at = datetime.utcnow()
+            step.save()
 
 def execute_steps_automatically(work_order, plan_steps, start_from_step_number=None):
     """
@@ -182,13 +234,61 @@ All Steps:
         }
 
         result = agent.invoke({"messages": [msg]})
-        latest_message = result["messages"][-1]
-        data = json.loads(latest_message.content)
-
-        step.executor = data["executor"]
+        messages = result.get("messages", [])
+        latest_message = messages[-1] if messages else None
+        
+        # Check if agent used any tools (tool calls indicate agent execution)
+        tool_used = False
+        executor = "technician"
+        
+        # Look through all messages for tool calls
+        for msg_item in messages:
+            # Check if this is a ToolMessage (result from tool execution)
+            if isinstance(msg_item, ToolMessage):
+                tool_used = True
+                executor = "agent"
+                break
+            # Check for tool_calls attribute (AIMessage with tool calls)
+            if isinstance(msg_item, AIMessage) and hasattr(msg_item, 'tool_calls') and msg_item.tool_calls:
+                tool_used = True
+                executor = "agent"
+                break
+            # Also check for tool call IDs
+            if hasattr(msg_item, 'tool_call_id') and msg_item.tool_call_id:
+                tool_used = True
+                executor = "agent"
+                break
+            # Check message type string
+            if hasattr(msg_item, 'type') and msg_item.type == 'tool':
+                tool_used = True
+                executor = "agent"
+                break
+        
+        # If no tool was used, try to parse JSON response
+        if not tool_used and latest_message:
+            try:
+                content = latest_message.content
+                if content and isinstance(content, str):
+                    # Try to extract JSON from content (might be wrapped in markdown)
+                    content_clean = content.strip()
+                    if content_clean.startswith('```'):
+                        # Remove markdown code blocks
+                        content_clean = content_clean.split('```')[1]
+                        if content_clean.startswith('json'):
+                            content_clean = content_clean[4:]
+                        content_clean = content_clean.strip()
+                    if content_clean.startswith('{'):
+                        data = json.loads(content_clean)
+                        executor = data.get("executor", "technician")
+            except (json.JSONDecodeError, AttributeError, KeyError) as e:
+                # If JSON parsing fails, default to technician
+                print(f"Warning: Could not parse agent response as JSON: {e}")
+                executor = "technician"
+        
+        step.executor = executor
         step.save()
         
-        if data['executor'] != 'agent':
+        if executor != 'agent':
             # This step requires technician - keep it as in_progress
             return step
         else:
@@ -284,21 +384,67 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
             "messages": [msg]
         })
         
-        # print(mapped)
-        # print(result)
-        most_recent_msg = result['messages'][-1]
-
-        content = json.loads(most_recent_msg.content)
-        print("CONTENT: ", content)
-        current_plan_step.executor = content['executor']
+        messages = result.get("messages", [])
+        latest_message = messages[-1] if messages else None
+        
+        # Check if agent used any tools (tool calls indicate agent execution)
+        tool_used = False
+        executor = "technician"
+        
+        # Look through all messages for tool calls
+        for msg_item in messages:
+            # Check if this is a ToolMessage (result from tool execution)
+            if isinstance(msg_item, ToolMessage):
+                tool_used = True
+                executor = "agent"
+                break
+            # Check for tool_calls attribute (AIMessage with tool calls)
+            if isinstance(msg_item, AIMessage) and hasattr(msg_item, 'tool_calls') and msg_item.tool_calls:
+                tool_used = True
+                executor = "agent"
+                break
+            # Also check for tool call IDs
+            if hasattr(msg_item, 'tool_call_id') and msg_item.tool_call_id:
+                tool_used = True
+                executor = "agent"
+                break
+            # Check message type string
+            if hasattr(msg_item, 'type') and msg_item.type == 'tool':
+                tool_used = True
+                executor = "agent"
+                break
+        
+        # If no tool was used, try to parse JSON response
+        if not tool_used and latest_message:
+            try:
+                content = latest_message.content
+                if content and isinstance(content, str):
+                    # Try to extract JSON from content (might be wrapped in markdown)
+                    content_clean = content.strip()
+                    if content_clean.startswith('```'):
+                        # Remove markdown code blocks
+                        content_clean = content_clean.split('```')[1]
+                        if content_clean.startswith('json'):
+                            content_clean = content_clean[4:]
+                        content_clean = content_clean.strip()
+                    if content_clean.startswith('{'):
+                        data = json.loads(content_clean)
+                        executor = data.get("executor", "technician")
+            except (json.JSONDecodeError, AttributeError, KeyError) as e:
+                # If JSON parsing fails, default to technician
+                print(f"Warning: Could not parse agent response as JSON: {e}")
+                executor = "technician"
+        
+        print(f"Step {current_plan_step.step_number}: Executor = {executor}, Tool used = {tool_used}")
+        current_plan_step.executor = executor
         current_plan_step.save()
-        if content['executor'] != 'agent':
+        
+        if executor != 'agent':
             break
         else:
             current_plan_step.status = "success"
             current_plan_step.executed_at = datetime.utcnow()
-
-        current_plan_step.save()
+            current_plan_step.save()
 
 def regenerate_steps_from_issue(work_order, issue_description, from_step_number, completed_steps):
     """

@@ -9,7 +9,7 @@ import IssueReportForm from './IssueReportForm'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useAuth } from '../contexts/AuthContext'
 
-function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, onIssueEscalate }) {
+function WorkOrderDetails({ workOrderId, onLogsClick, onAssignClick, onIssueEscalate }) {
   const { isEngineer } = useAuth()
   const [workOrder, setWorkOrder] = useState(null)
   const [inventory, setInventory] = useState(null)
@@ -17,7 +17,6 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [runningPlan, setRunningPlan] = useState(false)
   const [issueFormOpen, setIssueFormOpen] = useState(false)
   const [selectedStepIndex, setSelectedStepIndex] = useState(null)
   const [loadingStepId, setLoadingStepId] = useState(null)
@@ -64,18 +63,31 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
         setSteps([])
       }
 
-      // Fetch inventory if part_id exists (commented out for now)
-      // if (woData.part_id) {
-      //   try {
-      //     const invResponse = await fetch(`/api/inventory/${woData.part_id}`)
-      //     if (invResponse.ok) {
-      //       const invData = await invResponse.json()
-      //       setInventory(invData)
-      //     }
-      //   } catch (err) {
-      //     console.error('Error fetching inventory:', err)
-      //   }
-      // }
+      // Try to find relevant inventory items based on work order title/description
+      // Look for common component keywords
+      const inventoryKeywords = ['GPU', 'CPU', 'RAM', 'SSD', 'HDD', 'memory', 'storage', 'server', 'rack', 'cable', 'power', 'PSU', 'UPS', 'network', 'ethernet', 'fiber']
+      const workOrderText = `${woData.title || ''} ${woData.description || ''}`.toUpperCase()
+      
+      const matchedKeywords = inventoryKeywords.filter(keyword => 
+        workOrderText.includes(keyword.toUpperCase())
+      )
+      
+      if (matchedKeywords.length > 0) {
+        try {
+          // Search inventory for items matching the keywords
+          const searchQuery = matchedKeywords[0] // Use first matched keyword
+          const invResponse = await fetch(`/api/inventory/search?q=${encodeURIComponent(searchQuery)}`)
+          if (invResponse.ok) {
+            const invData = await invResponse.json()
+            // Get the first matching inventory item
+            if (invData && invData.length > 0) {
+              setInventory(invData[0])
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching inventory:', err)
+        }
+      }
 
     } catch (err) {
       setError(err.message)
@@ -160,29 +172,6 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
     setSteps(updatedSteps)
   }
 
-  const handleRunPlan = async () => {
-    setRunningPlan(true)
-    onRunPlan?.(workOrderId)
-    try {
-      const response = await fetch(`/api/start_agent/${workOrderId}`, {
-        method: 'POST',
-      })
-      const result = await response.json()
-
-      // Update steps with agent results
-      if (result.plan) {
-        setSteps(result.plan.map((title, index) => ({
-          title,
-          description: `Step ${index + 1} of the repair procedure`,
-        })))
-      }
-    } catch (err) {
-      console.error('Error running plan:', err)
-    } finally {
-      setRunningPlan(false)
-    }
-  }
-
   const handleReportIssue = (stepIndex) => {
     setSelectedStepIndex(stepIndex)
     setIssueFormOpen(true)
@@ -234,10 +223,26 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
 
   const formatSLA = () => {
     if (!workOrder?.created_at) return 'N/A'
-    const created = new Date(workOrder.created_at)
-    const now = new Date()
-    const hours = Math.floor((now - created) / 3600000)
-    return `${hours}h`
+    try {
+      const created = new Date(workOrder.created_at)
+      const now = new Date()
+      const diffMs = now - created
+      const hours = Math.floor(diffMs / (1000 * 60 * 60))
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+      
+      // Handle negative time (timezone issues)
+      if (hours < 0) {
+        return 'Just created'
+      }
+      
+      if (hours === 0) {
+        return `${minutes}m`
+      }
+      
+      return `${hours}h ${minutes}m`
+    } catch (e) {
+      return 'N/A'
+    }
   }
 
   if (!workOrderId) {
@@ -377,23 +382,6 @@ function WorkOrderDetails({ workOrderId, onLogsClick, onRunPlan, onAssignClick, 
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-4 border-t border-border">
           <div className="flex items-center space-x-3">
-            <PrimaryButton
-              onClick={handleRunPlan}
-              disabled={runningPlan}
-              variant="primary"
-            >
-              {runningPlan ? 'Running...' : 'Run Plan'}
-            </PrimaryButton>
-            <PrimaryButton
-              onClick={() => {
-                setSteps([])
-                setCurrentStep(0)
-                fetchWorkOrderDetails()
-              }}
-              variant="ghost"
-            >
-              Replan
-            </PrimaryButton>
             {isEngineer() && onAssignClick && (
               <PrimaryButton
                 onClick={onAssignClick}

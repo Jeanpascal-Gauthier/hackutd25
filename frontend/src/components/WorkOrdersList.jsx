@@ -11,12 +11,20 @@ function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
-    fetchWorkOrders()
+    fetchWorkOrders(true) // Initial load with loading state
+    // Refresh work orders every 5 seconds to update status based on step completion
+    const interval = setInterval(() => {
+      fetchWorkOrders(false) // Refresh without showing loading state
+    }, 5000)
+    
+    return () => clearInterval(interval)
   }, [])
 
-  const fetchWorkOrders = async () => {
+  const fetchWorkOrders = async (showLoading = false) => {
     try {
-      setLoading(true)
+      if (showLoading) {
+        setLoading(true)
+      }
       setError(null)
       const response = await fetch('/api/work_orders')
       if (!response.ok) throw new Error('Failed to fetch work orders')
@@ -24,14 +32,11 @@ function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
       setWorkOrders(data)
     } catch (err) {
       setError(err.message)
-      // Fallback to mock data
-      setWorkOrders([
-        { id: 1, title: 'Replace GPU Node A12', status: 'pending', severity: 'high', rack: 'Rack-A12', updated_at: new Date().toISOString() },
-        { id: 2, title: 'Check Rack Temperature R18', status: 'in_progress', severity: 'medium', rack: 'Rack-R18', updated_at: new Date(Date.now() - 3600000).toISOString() },
-        { id: 3, title: 'Replace PSU in Rack B7', status: 'pending', severity: 'high', rack: 'Rack-B7', updated_at: new Date(Date.now() - 7200000).toISOString() },
-      ])
+      console.error('Error fetching work orders:', err)
     } finally {
-      setLoading(false)
+      if (showLoading) {
+        setLoading(false)
+      }
     }
   }
 

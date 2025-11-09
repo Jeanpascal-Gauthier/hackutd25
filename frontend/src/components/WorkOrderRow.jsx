@@ -20,19 +20,6 @@ function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  const getStatusDotColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return 'bg-text-tertiary'
-      case 'in_progress':
-      case 'in-progress':
-        return 'bg-accent-500'
-      case 'completed':
-        return 'bg-success-500'
-      default:
-        return 'bg-text-tertiary'
-    }
-  }
 
   return (
     <motion.div
@@ -50,9 +37,6 @@ function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-start space-x-3 flex-1 min-w-0">
-          {/* Status Dot */}
-          <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${getStatusDotColor(workOrder.status)}`} />
-          
           {/* Title and Description */}
           <div className="flex-1 min-w-0">
             <h3 className={`text-sm font-medium truncate mb-1 ${
