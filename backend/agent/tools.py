@@ -153,15 +153,19 @@ def update_inventory(item_name: str, quantity_change: int, location: str = None)
         return f"Error updating inventory: {str(e)}"
 
 @tool(parse_docstring=True)
-def check_existing_specs(server_id: str = None, component_type: str = None) -> str:
-    """Checks existing specifications for servers or components.
+def check_existing_specs(server_id: str = None) -> str:
+    """Checks server or component specifications from the database.
+    
+    Use this tool when steps mention checking, verifying, updating, adding, removing, or reviewing specifications.
+    This is an AUTOMATED operation - no physical access required.
+    
+    Examples: "Check CPU specs for server A12", "Verify GPU model", "Review server configuration"
     
     Args:
-        server_id: Optional server ID to check specs for.
-        component_type: Optional component type (CPU, GPU, RAM, Storage, etc.).
+        server_id: Server ID to check (e.g., "A12", "B45"). Returns complete server specs.
     
     Returns:
-        Specification information for the requested server or component.
+        Specification information including CPU, RAM, storage, GPU, network, and power details.
     """
     # Simulate spec checking
     if server_id:

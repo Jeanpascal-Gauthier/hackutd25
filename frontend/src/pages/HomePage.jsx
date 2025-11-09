@@ -84,6 +84,55 @@ function HomePage() {
     }
   }, [isEngineer])
 
+  // Fetch logs for selected work order or all logs
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        if (selectedWorkOrderId) {
+          // Fetch logs for selected work order
+          const response = await fetch(`/api/logs/work_order/${selectedWorkOrderId}`)
+          if (response.ok) {
+            const logsData = await response.json()
+            // Transform API logs to match frontend format
+            const transformedLogs = logsData.map(log => ({
+              message: log.message || log.agent_action || '',
+              type: log.type || log.log_type || 'info',
+              source: log.source || 'agent',
+              timestamp: log.timestamp,
+              result: log.result || '',
+              step_id: log.step_id,
+              step_number: log.step_number,
+            }))
+            setLogs(transformedLogs)
+          }
+        } else {
+          // Fetch all logs
+          const response = await fetch('/api/logs')
+          if (response.ok) {
+            const logsData = await response.json()
+            const transformedLogs = logsData.map(log => ({
+              message: log.message || log.agent_action || '',
+              type: log.type || log.log_type || 'info',
+              source: log.source || 'agent',
+              timestamp: log.timestamp,
+              result: log.result || '',
+              step_id: log.step_id,
+              step_number: log.step_number,
+            }))
+            setLogs(transformedLogs)
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching logs:', err)
+      }
+    }
+    
+    fetchLogs()
+    // Refresh logs every 3 seconds
+    const interval = setInterval(fetchLogs, 3000)
+    return () => clearInterval(interval)
+  }, [selectedWorkOrderId])
+
   useEffect(() => {
     if (selectedWorkOrderId) {
       fetchWorkOrder(selectedWorkOrderId)
@@ -161,21 +210,10 @@ function HomePage() {
       if (response.ok) {
         const result = await response.json()
         addToast('Work order created successfully', 'success', `Agent is generating steps for: ${formData.title}`)
-        setLogs(prev => [
-          ...prev,
-          {
-            message: `Engineer: Created new work order "${formData.title}"`,
-            type: 'success',
-            source: 'engineer',
-            timestamp: new Date().toISOString(),
-          },
-          {
-            message: `Agent: Analyzing work order and generating steps...`,
-            type: 'info',
-            source: 'agent',
-            timestamp: new Date().toISOString(),
-          },
-        ])
+        
+        // Get the work order ID from the response or fetch it
+        // The work order was just created, so we need to get its ID
+        // For now, logs will be fetched automatically by the useEffect
         // Refresh the work orders list by triggering a re-fetch
         setTimeout(() => {
           window.location.reload()
@@ -202,15 +240,21 @@ function HomePage() {
 
       if (response.ok) {
         addToast('Work order assigned successfully', 'success', 'Technician notified')
-        setLogs(prev => [
-          ...prev,
-          {
-            message: `Technician: Assigned work order "${selectedWorkOrder?.title || 'Work Order'}" to technician`,
-            type: 'success',
-            source: 'technician',
-            timestamp: new Date().toISOString(),
-          },
-        ])
+        // Create a log entry for the assignment
+        try {
+          await fetch('/api/logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              work_order_id: workOrderId,
+              agent_action: `Work order "${selectedWorkOrder?.title || 'Work Order'}" assigned to technician`,
+              source: 'technician',
+              log_type: 'info',
+            }),
+          })
+        } catch (err) {
+          console.error('Error creating log:', err)
+        }
       } else {
         throw new Error('Failed to assign work order')
       }

@@ -133,7 +133,7 @@ function WorkOrdersView() {
                         <p className="text-slate-500">No work orders found</p>
                     </div>
                 ) : (
-                    filteredWorkOrders.map((workOrder) => (
+                    filteredWorkOrders.toReversed(workOrder => -workOrder.created_at).map((workOrder) => (
                         <div
                             key={workOrder.id}
                             className="bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-colors"

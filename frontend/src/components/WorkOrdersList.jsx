@@ -40,13 +40,20 @@ function WorkOrdersList({ selectedId, onSelect, searchQuery = '' }) {
     }
   }
 
-  const filteredWorkOrders = workOrders.filter(wo => {
-    const matchesFilter = filter === 'all' || wo.status === filter
-    const matchesSearch = !searchQuery || 
-      wo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (wo.rack && wo.rack.toLowerCase().includes(searchQuery.toLowerCase()))
-    return matchesFilter && matchesSearch
-  })
+  const filteredWorkOrders = workOrders
+    .filter(wo => {
+      const matchesFilter = filter === 'all' || wo.status === filter
+      const matchesSearch = !searchQuery || 
+        wo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (wo.rack && wo.rack.toLowerCase().includes(searchQuery.toLowerCase()))
+      return matchesFilter && matchesSearch
+    })
+    .sort((a, b) => {
+      // Sort by updated_at descending (newest first), fallback to created_at
+      const aTime = a.updated_at || a.created_at || ''
+      const bTime = b.updated_at || b.created_at || ''
+      return bTime.localeCompare(aTime) // Reverse chronological order
+    })
 
   if (loading) {
     return (
