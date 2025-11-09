@@ -31,7 +31,7 @@ function AgentReasoningFeed({ reasoning, isActive }) {
                 : { opacity: 1, x: 0, scale: 1 }
             }
             transition={{ delay: index * 0.1, duration: 0.2 }}
-            className="p-3 bg-accent-50 dark:bg-accent-50 rounded-lg border border-accent-200 dark:border-accent-200"
+            className="p-3 bg-accent-50 dark:bg-accent-500/10 rounded-lg border border-accent-200 dark:border-accent-500/30"
           >
             <div className="flex items-start space-x-2">
               <div className="flex-shrink-0 w-2 h-2 rounded-full bg-accent-500 mt-2" />

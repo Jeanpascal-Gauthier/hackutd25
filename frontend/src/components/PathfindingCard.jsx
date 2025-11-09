@@ -7,11 +7,11 @@ function PathfindingCard({ fromLocation, toLocation, path }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200"
+      className="p-4 bg-gradient-to-br from-purple-50 dark:from-purple-900/20 to-pink-50 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800"
     >
-      <h3 className="font-semibold text-slate-900 mb-3 flex items-center">
+      <h3 className="font-semibold text-text-primary mb-3 flex items-center">
         <svg
-          className="w-5 h-5 mr-2 text-purple-500"
+          className="w-5 h-5 mr-2 text-purple-500 dark:text-purple-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -27,20 +27,20 @@ function PathfindingCard({ fromLocation, toLocation, path }) {
       </h3>
       <div className="space-y-2 text-sm">
         <div className="flex items-center justify-between">
-          <span className="text-slate-600">From:</span>
-          <span className="font-mono font-medium text-slate-900">
+          <span className="text-text-secondary">From:</span>
+          <span className="font-mono font-medium text-text-primary">
             {fromLocation.pod} - {fromLocation.aisle}
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-slate-600">To:</span>
-          <span className="font-mono font-medium text-slate-900">
+          <span className="text-text-secondary">To:</span>
+          <span className="font-mono font-medium text-text-primary">
             {toLocation.pod} - {toLocation.aisle}
           </span>
         </div>
         {path && (
-          <div className="mt-3 pt-3 border-t border-purple-200">
-            <div className="flex items-center space-x-2 text-xs text-slate-600">
+          <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-800">
+            <div className="flex items-center space-x-2 text-xs text-text-secondary">
               <span>Route:</span>
               <span className="font-mono">{path.join(' → ')}</span>
             </div>
