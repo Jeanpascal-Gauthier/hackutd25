@@ -1,11 +1,10 @@
-from mongoengine import Document, StringField, ReferenceField, DateTimeField
-from models import WorkOrder
+from mongoengine import Document, StringField, ReferenceField, DateTimeField, IntField
 
 class PlanStep(Document):
-    work_order_id = ReferenceField(WorkOrder)
-    step_number = StringField(required=True)
+    work_order = ReferenceField('WorkOrder')
+    step_number = IntField(required=True)
     description = StringField()
-    executor = StringField(choices=["agent","technician"], default="agent")
-    status = StringField(choices=["pending","in_progress","completed","failed"], default="pending")
+    executor = StringField(choices=["agent","technician","undecided"], default="undecided")
+    status = StringField(choices=["pending","in_progress","success","failure"], default="pending")
     result = StringField()
     executed_at = DateTimeField()
