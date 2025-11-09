@@ -92,34 +92,27 @@ function EscalatedIssues({ escalatedIssues = [], onResolve }) {
                     <p className="text-sm font-medium text-text-primary">
                       Work Order: <span className="font-normal">{issue.workOrderTitle || 'Unknown'}</span>
                     </p>
-                    <p className="text-xs text-text-secondary">
-                      Step: {issue.stepTitle || `Step ${issue.stepIndex + 1}`}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-medium text-text-secondary mb-1">
-                      Reason: <span className="font-normal text-text-primary">
-                        {issue.reason?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Not specified'}
-                      </span>
-                    </p>
+                    {issue.stepTitle && (
+                      <p className="text-xs text-text-secondary">
+                        Step: {issue.stepTitle}
+                      </p>
+                    )}
                   </div>
 
                   <p className="text-sm text-text-primary">
-                    {issue.description}
+                    {issue.description || issue.message}
                   </p>
 
                   {expandedIssue === index && (
                     <div className="mt-3 pt-3 border-t border-warning-200 dark:border-warning-800 space-y-2">
-                      {issue.additionalNotes && (
-                        <div>
-                          <p className="text-xs font-medium text-text-secondary mb-1">Additional Notes:</p>
-                          <p className="text-sm text-text-primary italic">{issue.additionalNotes}</p>
-                        </div>
-                      )}
-                      {issue.technicianName && (
+                      {issue.source && (
                         <p className="text-xs text-text-secondary">
-                          Reported by: <span className="font-medium">{issue.technicianName}</span>
+                          Source: <span className="font-medium capitalize">{issue.source.replace('_', ' ')}</span>
+                        </p>
+                      )}
+                      {issue.status && (
+                        <p className="text-xs text-text-secondary">
+                          Status: <span className="font-medium capitalize">{issue.status}</span>
                         </p>
                       )}
                       {issue.timestamp && (
