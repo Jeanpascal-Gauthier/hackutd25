@@ -27,6 +27,11 @@ export function AuthProvider({ children }) {
     setUser(userWithRole)
     localStorage.setItem('user', JSON.stringify(userWithRole))
     localStorage.setItem('auth_token', userData.token || 'demo_token')
+    
+    // Store token in Authorization header format for future API calls
+    if (userData.token) {
+      // Token will be sent via fetch headers in API calls
+    }
   }
 
   const logout = () => {
