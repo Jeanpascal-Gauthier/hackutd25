@@ -37,6 +37,25 @@
   --danger-50: #FFF1F2;
   --danger-500: #F43F5E;
   --danger-600: #E11D48;
+  
+  /* Data Center specific colors */
+  --cold-aisle-50: #E0F2FE;
+  --cold-aisle-100: #BAE6FD;
+  --cold-aisle-500: #0EA5E9;
+  --cold-aisle-600: #0284C7;
+  
+  --hot-aisle-50: #FEE2E2;
+  --hot-aisle-100: #FECACA;
+  --hot-aisle-500: #EF4444;
+  --hot-aisle-600: #DC2626;
+  
+  --inventory-warning-50: #FEF3C7;
+  --inventory-warning-500: #FCD34D;
+  --inventory-warning-600: #FBBF24;
+  
+  --priority-critical-50: #FFF7ED;
+  --priority-critical-500: #F97316;
+  --priority-critical-600: #EA580C;
 }
 
 /* Dark Theme */
@@ -46,12 +65,15 @@
   --bg-tertiary: #334155;
   --bg-elevated: #1E293B;
   
-  --border-color: #334155;
-  --border-muted: #1E293B;
+  --border-color: #475569;
+  --border-muted: #334155;
   
-  --text-primary: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-tertiary: #94A3B8;
+  --text-primary: #F1F5F9;
+  --text-secondary: #E2E8F0;
+  --text-tertiary: #CBD5E1;
+  
+  /* Enhanced contrast for dark mode cards */
+  --bg-elevated: #1E293B;
   
   /* Accent colors remain the same in dark mode */
   --accent-50: #1E3A8A;
@@ -70,6 +92,25 @@
   --danger-50: #7F1D1D;
   --danger-500: #F43F5E;
   --danger-600: #E11D48;
+  
+  /* Data Center specific colors for dark */
+  --cold-aisle-50: #0C4A6E;
+  --cold-aisle-100: #075985;
+  --cold-aisle-500: #0EA5E9;
+  --cold-aisle-600: #0284C7;
+  
+  --hot-aisle-50: #7F1D1D;
+  --hot-aisle-100: #991B1B;
+  --hot-aisle-500: #EF4444;
+  --hot-aisle-600: #DC2626;
+  
+  --inventory-warning-50: #78350F;
+  --inventory-warning-500: #FCD34D;
+  --inventory-warning-600: #FBBF24;
+  
+  --priority-critical-50: #7C2D12;
+  --priority-critical-500: #F97316;
+  --priority-critical-600: #EA580C;
 }
 
 /* Accent: Indigo */
@@ -116,15 +157,27 @@ body {
   transition: background-color 200ms, color 200ms;
 }
 
-/* Subtle background vignette */
+/* Subtle background vignette - pastel */
 body {
-  background: radial-gradient(ellipse at top, rgba(59, 130, 246, 0.02) 0%, transparent 50%),
+  background: radial-gradient(ellipse at top, rgba(147, 197, 253, 0.08) 0%, transparent 50%),
+              radial-gradient(ellipse at bottom, rgba(254, 202, 202, 0.05) 0%, transparent 50%),
               var(--bg-secondary);
 }
 
 .dark body {
-  background: radial-gradient(ellipse at top, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+  background: radial-gradient(ellipse at top, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
               var(--bg-secondary);
+}
+
+/* Dark mode card enhancements */
+.dark .bg-bg-elevated {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-color);
+}
+
+.dark .bg-white {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-color);
 }
 
 /* Focus ring styles */
