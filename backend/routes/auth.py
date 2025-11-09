@@ -6,6 +6,13 @@ import jwt
 import os
 from dotenv import load_dotenv
 
+# Verify that jwt module has the required methods
+if not hasattr(jwt, 'encode'):
+    raise ImportError(
+        "JWT module is missing 'encode' method. "
+        "Please install PyJWT: pip install PyJWT==2.8.0"
+    )
+
 load_dotenv()
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')

@@ -53,7 +53,7 @@ function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
           {/* Status Dot */}
           <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${getStatusDotColor(workOrder.status)}`} />
           
-          {/* Title and Rack */}
+          {/* Title and Description */}
           <div className="flex-1 min-w-0">
             <h3 className={`text-sm font-medium truncate mb-1 ${
               isSelected 
@@ -62,6 +62,11 @@ function WorkOrderRow({ workOrder, isSelected, onClick, index }) {
             }`}>
               {workOrder.title}
             </h3>
+            {workOrder.description && (
+              <p className="text-xs text-text-secondary truncate mb-1">
+                {workOrder.description}
+              </p>
+            )}
             {workOrder.rack && (
               <p className="text-xs text-text-secondary font-mono">
                 {workOrder.rack}

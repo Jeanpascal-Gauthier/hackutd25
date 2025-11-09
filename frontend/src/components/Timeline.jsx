@@ -101,6 +101,10 @@ function Timeline({ steps = [], workOrderId, onConfirmStep, onReportIssue, loadi
                     />
                   </svg>
                 </div>
+              ) : loadingStepId === step.id && isInProgress ? (
+                <div className="w-6 h-6 rounded-full border-2 border-gray-400 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                  <LoadingSpinner size="w-4 h-4" />
+                </div>
               ) : (
                 <div
                   className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
@@ -163,23 +167,16 @@ function Timeline({ steps = [], workOrderId, onConfirmStep, onReportIssue, loadi
                       <button
                         onClick={() => onConfirmStep(step.id, workOrderId)}
                         disabled={loadingStepId === step.id}
-                        className="px-3 py-1.5 text-xs font-medium text-success-600 dark:text-success-400 hover:bg-success-100 dark:hover:bg-success-900/30 rounded transition-colors border border-success-200 dark:border-success-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                        className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-300 bg-blue-100 dark:bg-slate-700 hover:bg-blue-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {loadingStepId === step.id ? (
-                          <>
-                            <LoadingSpinner size="w-3 h-3" />
-                            Processing...
-                          </>
-                        ) : (
-                          'Success'
-                        )}
+                        Success
                       </button>
                     )}
                     {onReportIssue && (
                       <button
                         onClick={() => onReportIssue(index)}
                         disabled={loadingStepId === step.id}
-                        className="px-3 py-1.5 text-xs font-medium text-danger-600 dark:text-danger-400 hover:bg-danger-100 dark:hover:bg-danger-900/30 rounded transition-colors border border-danger-200 dark:border-danger-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-300 bg-red-100 dark:bg-slate-700 hover:bg-red-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Issue
                       </button>
