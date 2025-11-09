@@ -3,8 +3,46 @@ from models.InventoryItem import InventoryItem
 from models.EscalationMessage import EscalationMessage
 from models.WorkOrder import WorkOrder
 from models.Technician import Technician
+from models.AgentLog import AgentLog
+from models.PlanStep import PlanStep
 from mongoengine import DoesNotExist
 from datetime import datetime
+
+@tool(parse_docstring=True)
+def create_log(plan_step_id: str, work_order_id: str, action: str, result: str):
+    """Logs an action and its result for transparency.
+    
+    Args:
+        plan_step_id: The ID of the current plan step.
+        work_order_id: The associated work order ID.
+        action: A short human-readable description of what was done.
+        result: The outcome or response returned by the action/tool.
+    """
+    work_order = WorkOrder.objects.get(id=work_order_id)
+    plan_step = PlanStep.objects.get(id=plan_step_id)
+    log = AgentLog(
+        related_step=plan_step,
+        work_order=work_order,
+        timestamp=datetime.utcnow(),
+        agent_action=action,
+        result=result,
+    )
+    log.save()
+    print(f"[LOG] Step {plan_step_id} | WorkOrder {work_order_id}")
+    return "Action logged successfully."
+
+@tool(parse_docstring=True)
+def shutdown_server(server_id: str) -> str:
+    """Shuts down server with given server ID.
+    
+    Args:
+        server_id: The ID or identifier of the server to reboot
+
+    Returns:
+        A success message indicating the server was rebooted
+    """
+    print(f"Shutting down server {server_id}.")
+    return f"Server {server_id} shut down successfully."
 
 @tool(parse_docstring=True)
 def reboot_server(server_id: str) -> str:

@@ -10,6 +10,7 @@ from langchain.messages import AnyMessage, AIMessage, ToolMessage
 from langchain.agents import create_agent
 from models.WorkOrder import WorkOrder
 from models.PlanStep import PlanStep
+from models.AgentLog import AgentLog
 from datetime import datetime, timezone
 
 load_dotenv()
@@ -56,6 +57,14 @@ Your role:
 
 This is a demo environment - be proactive with tool usage.
 
+When you call any tool (e.g. reboot_server, shutdown_server, etc.), 
+you must immediately and ALWAYS follow it with a call to the create_log tool.
+
+The create_log tool must include:
+- The plan_step_id and work_order_id you were given
+- A short, natural-language summary of what you just did (the “action”)
+- The result or return value of the tool you just called (the “result”)
+
 Examples of what you CAN do:
 - "Reboot server A45" → Use reboot_server tool with server_id="A45"
 - "Check temperature readings" → Use check_temperature tool
@@ -76,7 +85,7 @@ Otherwise, execute the task using your tools.
 
 agent = create_agent(
     model=agent_model,
-    tools=[tools.reboot_server, tools.check_existing_specs, tools.check_inventory, tools.check_temperature, tools.deploy_update, tools.escalate_to_higher_engineer, tools.order_supplies, tools.run_diagnostics],
+    tools=[tools.create_log, tools.shutdown_server, tools.reboot_server, tools.check_existing_specs, tools.check_inventory, tools.check_temperature, tools.deploy_update, tools.escalate_to_higher_engineer, tools.order_supplies, tools.run_diagnostics],
     system_prompt=agent_prompt
 )
 
@@ -102,6 +111,7 @@ def run_agent_from_step(step_id: str, work_order_id: str):
         msg = build_message(work_order, step, all_steps)
 
         result = agent.invoke({"messages": [msg]})
+        print(result)
         latest_message = result["messages"][-1]
         data = {}
         executor = 'technician'
@@ -114,6 +124,7 @@ def run_agent_from_step(step_id: str, work_order_id: str):
         step.executor = executor
         step.save()
         if step.executor != 'agent':
+            log_human_interaction(work_order, step, data['reasoning'])
             break
         else:
             step.status = "success"
@@ -149,6 +160,7 @@ def execute_steps_automatically(work_order, plan_steps, start_from_step_number=N
         msg = build_message(work_order, step, all_steps)
 
         result = agent.invoke({"messages": [msg]})
+        print(result)
         latest_message = result["messages"][-1]
         data = {}
         executor = 'technician'
@@ -163,6 +175,7 @@ def execute_steps_automatically(work_order, plan_steps, start_from_step_number=N
         
         if step.executor != 'agent':
             # This step requires technician - keep it as in_progress
+            log_human_interaction(work_order, step, data['reasoning'])
             return step
         else:
             # Agent can execute this step
@@ -234,7 +247,7 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
     PlanStep.objects.insert(plan_steps)
 
     all_steps = list(map(lambda x: f"Order: {x['step_number']}, Description: {x['description']}", data['steps']))
-    for i, step in enumerate(data['steps']):
+    for i, step in enumerate(plan_steps):
         current_plan_step = plan_steps[step['step_number']-1]
         current_plan_step.status = "in_progress"
         current_plan_step.save()
@@ -243,6 +256,7 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
         result = agent.invoke({
             "messages": [msg]
         })
+        print(result)
         
         # print(mapped)
         # print(result)
@@ -258,6 +272,7 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
         current_plan_step.executor = executor
         current_plan_step.save()
         if current_plan_step.executor != 'agent':
+            log_human_interaction(work_order, current_plan_step, content['reasoning'])
             break
         else:
             current_plan_step.status = "success"
@@ -331,6 +346,7 @@ def build_message(work_order, step, all_steps):
     msg = {
             "role": "user",
             "content": f"""
+Work Order ID: {work_order.id}
 Work Order Title: {work_order.title}
 Work Order Description: {work_order.description}
 Priority: {work_order.priority}
@@ -338,12 +354,24 @@ Category: {work_order.category}
 Estimated Expertise Level: {work_order.estimated_expertise_level}
 
 Current Step:
+- ID: {step['id']}
 - Order: {step['step_number']}
 - Description: {step['description']}
 
 If you can complete this task using your available tools, do so now.
+If you use ANY tools, they must all immediately be followed with a call to create_log, no exceptions.
 If this task requires a human technician (physical work, complex judgment, etc), respond with:
 {{"executor": "technician", "reason": "explanation"}}
 """
     }
     return msg
+
+def log_human_interaction(work_order, plan_step, reasoning):
+    log = AgentLog(
+        work_order=work_order,
+        related_step=plan_step,
+        action="Human intervention requested",
+        result=reasoning,
+        timestamp=datetime.utcnow()
+    )
+    log.save()
