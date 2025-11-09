@@ -82,6 +82,57 @@ agent = create_agent(
     system_prompt=agent_prompt
 )
 
+def run_agent_from_step(step_id: str, work_order_id: str):
+    work_order = WorkOrder.objects.get(id=work_order_id)
+    plan_steps = PlanStep.objects(work_order=work_order).order_by('step_number')
+    start_step = PlanStep.objects.get(id=step_id)
+    start_step.status = "success"
+    start_step.save()
+
+    all_steps = [
+        f"Order: {step.step_number}, Description: {step.description}"
+        for step in plan_steps
+    ]
+
+    for step in plan_steps:
+        if step.step_number <= start_step.step_number:
+            continue
+
+        step.status = "in_progress"
+        step.save()
+
+        msg = {
+            "role": "user",
+            "content": f"""
+Work Order Title: {work_order.title}
+Work Order Description: {work_order.description}
+Priority: {work_order.priority}
+Category: {work_order.category}
+Estimated Expertise Level: {work_order.estimated_expertise_level}
+
+Current Step:
+- Order: {step.step_number}
+- Description: {step.description}
+
+All Steps:
+{chr(10).join(all_steps)}
+"""
+        }
+
+        result = agent.invoke({"messages": [msg]})
+        latest_message = result["messages"][-1]
+        data = json.loads(latest_message.content)
+
+        step.executor = data["executor"]
+        step.save()
+        if data['executor'] != 'agent':
+            break
+        else:
+            step.status = "success"
+
+        step.save()
+        
+
 def run_agent(state: Context):
     prompt = f"""
 You are a data center expert AI assistant. Do not overcomplicate things, but provide enough details so that someone of relative expertise in the field would understand you. Be concise. You received the following ticket:

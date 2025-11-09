@@ -4,34 +4,23 @@ from mongoengine import DoesNotExist
 from models.WorkOrder import WorkOrder
 from models.PlanStep import PlanStep
 from datetime import datetime
-from agent.main_agent import Context, run_agent, regenerate_steps_from_issue
+from agent.main_agent import Context, run_agent, run_agent_from_step, regenerate_steps_from_issue
 
 work_orders_bp = Blueprint('work_orders', __name__, url_prefix='/api/work_orders')
 
-@work_orders_bp.route('/test', methods=['POST'])
-def test_llm():
-    data = request.json
-    context = Context(work_order_title=data.get("work_order_title"), work_order_description=data.get("work_order_description"))
-    result = run_agent(context)
-#     print(result.messages)
-#     return jsonify(result.messages), 201
 
+@work_orders_bp.route('/confirm_step', methods=['POST'])
+def from_step():
+    data = request.json
+    run_agent_from_step(data.get("step_id"), data.get("work_order_id"))
+    return {}, 204
 # Create WorkOrder
 @work_orders_bp.route('/', methods=['POST'])
 def create_workorder():
     data = request.json
-    work_order = WorkOrder(
-        title=data.get("title"),
-        description=data.get("description"),
-        priority=data.get("priority", "medium"),
-        estimated_expertise_level=data.get("estimated_expertise_level", "mid"),
-        category=data.get("category", "other"),
-        status="pending",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
-    )
-    work_order.save()
-    return jsonify({"id": str(work_order.id)}), 201
+    context = Context(work_order_title=data.get("work_order_title"), work_order_description=data.get("work_order_description"))
+    run_agent(context)
+    return {}, 204
 
 # Get All WorkOrders
 @work_orders_bp.route('/', methods=['GET'])
