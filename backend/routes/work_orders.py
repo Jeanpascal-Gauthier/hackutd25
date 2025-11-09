@@ -3,8 +3,17 @@ from flask import Blueprint, request, jsonify
 from mongoengine import DoesNotExist
 from models.WorkOrder import WorkOrder
 from datetime import datetime
+from agent.main_agent import run_agent, AgentState
 
 work_orders_bp = Blueprint('work_orders', __name__, url_prefix='/api/work_orders')
+
+@work_orders_bp.route('/test', methods=['POST'])
+def test_llm():
+    data = request.json
+    state = AgentState(work_order_title=data.get("work_order_title"), work_order_description=data.get("work_order_description"))
+    result = run_agent(state)
+    print(result.messages)
+    return jsonify(result.messages), 201
 
 # Create WorkOrder
 @work_orders_bp.route('/', methods=['POST'])
