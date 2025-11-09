@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from langchain.messages import AnyMessage
 from langchain.agents import create_agent
+from models.WorkOrder import WorkOrder
+from models.PlanStep import PlanStep
+from datetime import datetime
 
 load_dotenv()
 
@@ -108,7 +111,35 @@ DO NOT ESCAPE OR USE ANY SPECIAL NON-VALID JSON STRUCTURE. THIS INCLUDES CODE BL
     )
 
     data = json.loads(result.choices[0].message.content)
+    print("--------------------------------")
     print(result)
+    print("--------------------------------")
+
+    work_order = WorkOrder(
+        title=state['work_order_title'],
+        description=state['work_order_description'],
+        priority=data['priority'],
+        category=data['category'],
+        estimated_expertise_level=data['estimated_expertise_level'],
+        status="pending",
+        created_at=datetime.utcnow(),
+    )
+
+    work_order.save()
+
+    plan_steps = [
+        PlanStep(
+            work_order_id=work_order.id,
+            step_number=step['step_number'],
+            description=step['description'],
+            executor="undecided",
+            status="pending",
+            result=None,
+            executed_at=None
+        ) for step in data['steps']
+    ]
+
+    PlanStep.objects.insert(plan_steps)
 
     all_steps = list(map(lambda x: f"Order: {x['step_number']}, Description: {x['description']}", data['steps']))
     for step in data['steps']:
